@@ -262,7 +262,7 @@
     const db = getDatabase(app);
     let currentUser = null;
     let globalRecords = [];
-    let globalPrefs = { triggers: ['吹到風', '冷氣變冷', '睡眠不足', '壓力', '生理期', '噁心', '畏光'], meds: ['普拿疼', '布洛芬(消炎)'] };
+    let globalPrefs = { triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期', '噁心', '畏光'], meds: ['普拿疼', '布洛芬(消炎)'] };
 
     // 登入事件監聽
     onAuthStateChanged(auth, (user) => {
