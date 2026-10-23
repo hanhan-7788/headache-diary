@@ -61,7 +61,6 @@
     .pain-4 { background-color: #d32f2f; }
     .pain-5 { background-color: #9c27b0; }
 
-    /* 登入遮罩 */
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #main-app { display: none; }
 </style>
@@ -72,8 +71,13 @@
 <div id="login-overlay">
     <h2>舒心頭痛日記</h2>
     <p style="color: #aaa; margin-bottom: 30px;">請登入以同步您的雲端紀錄</p>
-    <button class="save-btn" style="width: 80%; max-width: 300px; background: #fff; color: #333;" id="btn-login">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" style="width: 20px; vertical-align: middle; margin-right: 10px;">
+    <button class="save-btn" style="width: 80%; max-width: 300px; background: #fff; color: #333; display: flex; align-items: center; justify-content: center;" id="btn-login">
+        <svg style="width: 20px; margin-right: 10px;" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
         使用 Google 登入
     </button>
 </div>
@@ -187,7 +191,10 @@
 
         <!-- 歷史紀錄 -->
         <div id="tab-history" class="tab-content">
-            <h2>歷史紀錄</h2>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">歷史紀錄</h2>
+                <button class="action-btn" style="background: #388e3c;" onclick="window.exportCSV()">📄 匯出 CSV 報表</button>
+            </div>
             <div id="records-list"></div>
         </div>
     </div>
@@ -264,7 +271,6 @@
     let globalRecords = [];
     let globalPrefs = { triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期', '噁心', '畏光'], meds: ['普拿疼', '布洛芬(消炎)'] };
 
-    // 登入事件監聽
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
@@ -280,12 +286,13 @@
 
     document.getElementById('btn-login').addEventListener('click', () => {
         const provider = new GoogleAuthProvider();
-        signInWithPopup(auth, provider).catch(error => alert("登入失敗: " + error.message));
+        signInWithPopup(auth, provider).catch(error => {
+            if(error.code !== 'auth/popup-closed-by-user') window.showToast("登入失敗: " + error.message);
+        });
     });
 
     document.getElementById('btn-logout').addEventListener('click', () => { signOut(auth); });
 
-    // 從雲端讀取資料
     function loadDataFromCloud() {
         const dbRef = ref(db);
         get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
@@ -294,7 +301,7 @@
                 globalRecords = data.records || [];
                 if(data.prefs) globalPrefs = data.prefs;
             }
-            // 初始化 UI
+            
             var matrixHtml = document.querySelector('#tab-record .matrix').innerHTML;
             var btnGroupHtml = document.querySelector('#tab-record .matrix + .btn-group').outerHTML;
             document.getElementById('change-matrix-container').innerHTML = matrixHtml + btnGroupHtml;
@@ -306,7 +313,6 @@
         });
     }
 
-    // 寫入雲端
     function syncToCloud() {
         set(ref(db, `users/${currentUser.uid}`), {
             records: globalRecords,
@@ -314,7 +320,6 @@
         });
     }
 
-    // 暴露核心函式給全域 UI 呼叫
     window.appLogic = {
         getRecords: () => globalRecords,
         getPrefs: () => globalPrefs,
@@ -327,7 +332,7 @@
         saveRecord: () => {
             var id = document.getElementById('edit-id').value;
             var time = document.getElementById('record-time').value;
-            if(!time) return alert("請填寫時間！");
+            if(!time) return window.showToast("請填寫時間！");
 
             var pain = window.getRadioVal('#tab-record', 'pain') || '未填寫';
             var duration = window.getRadioVal('#tab-record', 'duration') || '未確認';
@@ -350,10 +355,10 @@
                 if(idx > -1) {
                     globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect, memo };
                 }
-                alert("編輯已儲存！");
+                window.showToast("編輯已儲存！");
             } else {
                 globalRecords.push({ id: Date.now(), time, pain, duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
-                alert("紀錄已儲存！");
+                window.showToast("紀錄已儲存！");
             }
             globalRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
             syncToCloud();
@@ -363,7 +368,7 @@
             var id = document.getElementById('change-parent-id').value;
             var editIndex = document.getElementById('change-edit-index').value;
             var time = document.getElementById('change-time').value;
-            if(!time) return alert("請輸入時間");
+            if(!time) return window.showToast("請輸入時間！");
 
             var pain = window.getRadioVal('#change-modal', 'change-pain') || '未填寫';
             var effect = window.getRadioVal('#change-modal', 'change-effect');
@@ -386,9 +391,10 @@
                 else globalRecords[idx].changes.push(changeData);
                 globalRecords[idx].changes.sort((a,b) => new Date(a.time) - new Date(b.time));
                 syncToCloud();
+                window.showToast("變化紀錄已儲存！");
             }
             window.closeModal();
-            window.switchTab('history'); // 重新渲染歷史紀錄
+            window.switchTab('history'); 
         },
         deleteRecord: (id) => {
             if(confirm("確定刪除此整筆紀錄？")) {
@@ -421,6 +427,17 @@
 
 <script>
     var currentCalDate = new Date();
+    
+    // Toast 提示元件邏輯
+    window.showToast = function(msg) {
+        var toast = document.createElement('div');
+        toast.innerText = msg;
+        toast.style.cssText = "position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--primary-color); color:#fff; padding:12px 24px; border-radius:30px; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,0.5); opacity:0; transition:opacity 0.3s; font-weight:bold; white-space:nowrap;";
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.style.opacity = 1; }, 10);
+        setTimeout(function(){ toast.style.opacity = 0; setTimeout(function(){ toast.remove(); }, 300); }, 2500);
+    };
+
     function getLocalIsoStr(dateObj) {
         var tzOffset = (new Date()).getTimezoneOffset() * 60000;
         return (new Date(dateObj - tzOffset)).toISOString().slice(0, 16);
@@ -598,6 +615,28 @@
             html += '<div class="cal-cell">' + i + dotHtml + '</div>';
         }
         grid.innerHTML = html;
+    };
+
+    window.exportCSV = function() {
+        var records = window.appLogic ? window.appLogic.getRecords() : [];
+        if(records.length === 0) return window.showToast("無資料可匯出");
+        var csvContent = "\uFEFF時間,痛覺評分,部位,誘因,用藥,藥效,持續時間,備註,轉移軌跡\n";
+        
+        records.forEach(r => {
+            var track = (r.changes && r.changes.length > 0) ? r.changes.map((c, i) => `[變化${i+1}] ${c.time.split('T')[1]} 痛:${c.pain.split(':')[0]} 部位:${c.locs||'無'}`).join(' / ') : '無';
+            var row = [
+                r.time.replace('T', ' '), r.pain, r.locs, r.triggers, r.meds, r.effect, r.duration, 
+                (r.memo || '').replace(/,/g, "，").replace(/\n/g, " "), track
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+        link.download = `頭痛日記雲端報表_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 </script>
 </body>
