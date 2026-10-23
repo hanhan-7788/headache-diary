@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- 強制防快取設定 (防止網頁更新卡住) -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>頭痛日記 (雲端同步版)</title>
 <style>
     :root { --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; --timeline-color: #4f8bc988; }
@@ -12,7 +16,7 @@
     .container { padding: 20px; max-width: 600px; margin: 0 auto; }
     
     .nav { display: flex; position: fixed; bottom: 0; width: 100%; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 100; }
-    .nav button { flex: 1; padding: 15px 5px; background: none; border: none; color: var(--text-color); font-size: 16px; cursor: pointer; }
+    .nav button { flex: 1; padding: 15px 5px; background: none; border: none; color: var(--text-color); font-size: 15px; cursor: pointer; }
     .nav button.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); font-weight: bold; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -35,7 +39,7 @@
     .matrix-header { text-align: center; font-weight: bold; color: #888; }
     
     .save-btn { width: 100%; padding: 15px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 10px; cursor: pointer;}
-    .big-add-btn { background: var(--primary-color); color: #fff; border: none; padding: 20px; width: 100%; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(79,139,201,0.3); margin-top: 10px;}
+    .big-add-btn { background: var(--primary-color); color: #fff; border: none; padding: 20px; width: 100%; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(79,139,201,0.3); margin-bottom: 15px;}
     .action-btn { background: #444; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 5px; margin-bottom: 5px;}
     
     .record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
@@ -60,6 +64,7 @@
     .pain-3 { background-color: #f4511e; }
     .pain-4 { background-color: #d32f2f; }
     .pain-5 { background-color: #9c27b0; }
+    .pain-fill { background-color: var(--primary-color); }
 
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #main-app { display: none; }
@@ -108,12 +113,12 @@
                 </div>
             </div>
 
+            <button class="big-add-btn" onclick="startNewRecord()">➕ 紀錄當下頭痛</button>
+
             <div class="section">
                 <div class="section-title">數據摘要</div>
                 <div id="dash-summary" style="font-size: 15px; color:#ccc;"></div>
             </div>
-
-            <button class="big-add-btn" onclick="startNewRecord()">➕ 紀錄當下頭痛</button>
         </div>
 
         <!-- 表單 -->
@@ -193,15 +198,23 @@
         <div id="tab-history" class="tab-content">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="margin: 0;">歷史紀錄</h2>
-                <button class="action-btn" style="background: #388e3c;" onclick="window.exportCSV()">📄 匯出 CSV 報表</button>
+                <button class="action-btn" style="background: #388e3c;" onclick="window.exportCSV()">📄 匯出 CSV</button>
             </div>
             <div id="records-list"></div>
         </div>
+
+        <!-- 圖表分析 -->
+        <div id="tab-charts" class="tab-content">
+            <h2>圖表與分析</h2>
+            <div id="charts-container"></div>
+        </div>
     </div>
 
+    <!-- 底部導覽列改為三個 -->
     <div class="nav">
         <button id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🏠 首頁</button>
-        <button id="nav-history" onclick="switchTab('history')">📖 歷史紀錄</button>
+        <button id="nav-history" onclick="switchTab('history')">📖 歷史</button>
+        <button id="nav-charts" onclick="switchTab('charts')">📊 圖表</button>
     </div>
 </div>
 
@@ -522,6 +535,7 @@
         
         if(tab === 'dashboard') { window.updateDashboard(); window.renderCalendar(); }
         if(tab === 'history') window.renderHistory();
+        if(tab === 'charts') window.renderCharts();
     };
 
     window.updateDashboard = function() {
@@ -615,6 +629,71 @@
             html += '<div class="cal-cell">' + i + dotHtml + '</div>';
         }
         grid.innerHTML = html;
+    };
+
+    // 繪製圖表函數
+    function makeBarHtml(label, count, maxCount, colorClass) {
+        var pct = maxCount === 0 ? 0 : Math.round((count/maxCount)*100);
+        return `
+        <div style="display:flex; align-items:center; margin-bottom:10px; font-size:14px;">
+            <div style="width:80px; text-align:right; margin-right:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</div>
+            <div style="flex-grow:1; background:#333; border-radius:4px; height:20px; overflow:hidden;">
+                <div class="${colorClass}" style="width:${pct}%; height:100%;"></div>
+            </div>
+            <div style="width:30px; text-align:right; margin-left:10px;">${count}</div>
+        </div>`;
+    }
+
+    window.renderCharts = function() {
+        var records = window.appLogic ? window.appLogic.getRecords() : [];
+        var container = document.getElementById('charts-container');
+        if(records.length === 0) {
+            container.innerHTML = "<div class='section'>尚無足夠數據可產生圖表。</div>";
+            return;
+        }
+
+        var painCounts = { '1':0, '2':0, '3':0, '4':0, '5':0 };
+        var triggerCounts = {};
+
+        records.forEach(r => {
+            var p = parseInt(r.pain.charAt(0)) || 0;
+            if(p >= 1 && p <= 5) painCounts[p]++;
+            if(r.triggers) {
+                r.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
+            }
+            if(r.changes) {
+                r.changes.forEach(c => {
+                    var cp = parseInt(c.pain.charAt(0)) || 0;
+                    if(cp >= 1 && cp <= 5) painCounts[cp]++;
+                    if(c.triggers) {
+                        c.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
+                    }
+                });
+            }
+        });
+
+        // 痛覺圖表
+        var maxPain = Math.max(...Object.values(painCounts), 0);
+        var painHtml = '';
+        for(let i=1; i<=5; i++) {
+            painHtml += makeBarHtml(i + '分痛覺', painCounts[i], maxPain, 'pain-' + i);
+        }
+
+        // 誘因排行榜
+        var sortedTriggers = Object.entries(triggerCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
+        var maxTrigger = sortedTriggers.length > 0 ? sortedTriggers[0][1] : 0;
+        var triggerHtml = sortedTriggers.length > 0 ? sortedTriggers.map(t => makeBarHtml(t[0], t[1], maxTrigger, 'pain-fill')).join('') : '<div style="color:#aaa; font-size:14px;">尚無紀錄</div>';
+
+        container.innerHTML = `
+            <div class="section">
+                <div class="section-title">痛覺分佈比例</div>
+                ${painHtml}
+            </div>
+            <div class="section">
+                <div class="section-title">誘因與變數排行榜 (Top 5)</div>
+                ${triggerHtml}
+            </div>
+        `;
     };
 
     window.exportCSV = function() {
