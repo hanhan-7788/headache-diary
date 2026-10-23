@@ -257,4 +257,180 @@
             }
             alert("編輯已儲存！");
         } else {
-            records.push({ id: Date.now
+            records.push({ id: Date.now(), time: time, pain: pain, duration: duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect: effect, memo: memo, changes: [] });
+            alert("紀錄已儲存！");
+        }
+
+        records.sort(function(a, b){ return new Date(b.time) - new Date(a.time); });
+        localStorage.setItem('headache_records', JSON.stringify(records));
+        
+        cancelEdit();
+        switchTab('history');
+    }
+
+    function editRecord(id) {
+        var record = getRecords().find(function(r){ return r.id == id; });
+        if(!record) return;
+        
+        document.getElementById('edit-id').value = record.id;
+        document.getElementById('record-time').value = record.time;
+        document.getElementById('memo').value = record.memo || '';
+        document.getElementById('custom-trigger').value = '';
+        
+        document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(function(el){ el.checked = false; });
+        
+        if(record.pain) { var p = document.querySelector('input[name="pain"][value="' + record.pain + '"]'); if(p) p.checked = true; }
+        if(record.duration) { var d = document.querySelector('input[name="duration"][value="' + record.duration + '"]'); if(d) d.checked = true; }
+        if(record.effect) { var e = document.querySelector('input[name="effect"][value="' + record.effect + '"]'); if(e) e.checked = true; }
+        
+        if(record.locs) record.locs.split('、').forEach(function(v){ var cb = document.querySelector('.loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.triggers) record.triggers.split('、').forEach(function(v){ var cb = document.querySelector('.trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.meds) record.meds.split('、').forEach(function(v){ var cb = document.querySelector('.med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        
+        document.getElementById('form-title').innerText = "編輯紀錄";
+        document.getElementById('save-btn-text').innerText = "儲存編輯";
+        document.getElementById('cancel-edit-btn').style.display = 'block';
+        switchTab('record');
+    }
+
+    function cancelEdit() {
+        document.getElementById('edit-id').value = '';
+        document.getElementById('form-title').innerText = "新增紀錄";
+        document.getElementById('save-btn-text').innerText = "儲存紀錄";
+        document.getElementById('cancel-edit-btn').style.display = 'none';
+        document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(function(el){ el.checked = false; });
+        document.querySelectorAll('input[type="text"], textarea').forEach(function(el){ el.value = ''; });
+        setNow('record-time');
+    }
+
+    function openChangeModal(id) {
+        document.getElementById('change-parent-id').value = id;
+        setNow('change-time');
+        document.getElementById('change-locs').value = '';
+        document.getElementById('change-memo').value = '';
+        document.querySelectorAll('input[name="change-pain"]').forEach(function(el){ el.checked = false; });
+        document.getElementById('change-modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('change-modal').style.display = 'none'; }
+
+    function saveChange() {
+        var id = document.getElementById('change-parent-id').value;
+        var time = document.getElementById('change-time').value;
+        var pain = getRadioVal('change-pain') || '未填寫';
+        var locs = document.getElementById('change-locs').value.trim();
+        var memo = document.getElementById('change-memo').value.trim();
+
+        if(!time) return alert("請輸入時間");
+
+        var records = getRecords();
+        var index = records.findIndex(function(r){ return r.id == id; });
+        if(index > -1) {
+            if(!records[index].changes) records[index].changes = [];
+            records[index].changes.push({ time: time, pain: pain, locs: locs, memo: memo });
+            records[index].changes.sort(function(a,b){ return new Date(a.time) - new Date(b.time); });
+            localStorage.setItem('headache_records', JSON.stringify(records));
+        }
+        closeModal();
+        renderHistory();
+    }
+
+    function deleteRecord(id) {
+        if(confirm("確定刪除此紀錄？")) {
+            var records = getRecords().filter(function(r){ return r.id != id; });
+            localStorage.setItem('headache_records', JSON.stringify(records));
+            renderHistory();
+        }
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content, .nav button').forEach(function(el){ el.classList.remove('active'); });
+        var tabEl = document.getElementById('tab-' + tab);
+        var navEl = document.getElementById('nav-' + tab);
+        if(tabEl) tabEl.classList.add('active');
+        if(navEl) navEl.classList.add('active');
+        
+        if(tab === 'history') renderHistory();
+        if(tab === 'calendar') renderCalendar();
+    }
+
+    function renderHistory() {
+        var records = getRecords();
+        var listDiv = document.getElementById('records-list');
+        if(records.length === 0) { listDiv.innerHTML = "<p>尚無紀錄。</p>"; return; }
+
+        var html = '';
+        records.forEach(function(r){
+            var dateStr = r.time.replace('T', ' ');
+            var changesHtml = '';
+            if(r.changes && r.changes.length > 0) {
+                changesHtml = '<div class="timeline">';
+                r.changes.forEach(function(c){
+                    var cTime = c.time.split('T')[1] || c.time;
+                    changesHtml += '<div class="timeline-item"><div style="font-size:13px; color:#aaa;">' + cTime + ' 轉移/變化：</div>';
+                    changesHtml += '<div>' + c.pain.split(':')[0] + '分 | ' + (c.locs || '無填寫部位') + '</div>';
+                    if(c.memo) changesHtml += '<div style="color:#bbb; font-size:13px;">↳ 備註：' + c.memo + '</div>';
+                    changesHtml += '</div>';
+                });
+                changesHtml += '</div>';
+            }
+
+            html += '<div class="record-card">';
+            html += '<div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '分</div>';
+            html += '<div class="record-detail"><strong>持續時間：</strong>' + (r.duration || '未填寫') + '</div>';
+            html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
+            html += '<div class="record-detail"><strong>誘因：</strong>' + (r.triggers || '無') + '</div>';
+            html += '<div class="record-detail"><strong>用藥：</strong>' + (r.meds || '無') + (r.effect ? ' ('+r.effect+')' : '') + '</div>';
+            if(r.memo) html += '<div class="record-detail"><strong>備註：</strong>' + r.memo + '</div>';
+            html += changesHtml;
+            html += '<div style="margin-top:15px; display:flex; gap:10px;">';
+            html += '<button class="action-btn" onclick="openChangeModal(' + r.id + ')">➕ 紀錄變化</button>';
+            html += '<button class="action-btn" onclick="editRecord(' + r.id + ')">✏️ 編輯</button>';
+            html += '<button class="action-btn" style="background:var(--danger-color);" onclick="deleteRecord(' + r.id + ')">刪除</button>';
+            html += '</div></div>';
+        });
+        listDiv.innerHTML = html;
+    }
+
+    function changeMonth(offset) {
+        currentCalDate.setMonth(currentCalDate.getMonth() + offset);
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        var grid = document.getElementById('cal-grid');
+        var monthYear = document.getElementById('cal-month-year');
+        var year = currentCalDate.getFullYear();
+        var month = currentCalDate.getMonth();
+        
+        monthYear.innerText = year + ' 年 ' + (month + 1) + ' 月';
+        
+        var html = '';
+        var days = ['日','一','二','三','四','五','六'];
+        for(var d=0; d<7; d++) html += '<div class="cal-day-name">' + days[d] + '</div>';
+        
+        var firstDay = new Date(year, month, 1).getDay();
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+        for(var i=0; i<firstDay; i++) html += '<div></div>';
+        
+        var records = getRecords();
+        var dayPains = {};
+        records.forEach(function(r){
+            var d = new Date(r.time);
+            if(d.getFullYear() === year && d.getMonth() === month) {
+                var dateKey = d.getDate();
+                var p = parseInt(r.pain.charAt(0)) || 1;
+                if(r.changes) { r.changes.forEach(function(c){ var cp = parseInt(c.pain.charAt(0))||1; if(cp>p) p=cp; }); }
+                if(!dayPains[dateKey] || p > dayPains[dateKey]) dayPains[dateKey] = p;
+            }
+        });
+
+        for(var i=1; i<=daysInMonth; i++) {
+            var dot = dayPains[i] ? '<div class="cal-dot pain-' + dayPains[i] + '"></div>' : '';
+            html += '<div class="cal-cell">' + i + dot + '</div>';
+        }
+        grid.innerHTML = html;
+    }
+</script>
+</body>
+</html>
