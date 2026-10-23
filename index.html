@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>頭痛日記</title>
+<title>頭痛日記 (雲端同步版)</title>
 <style>
     :root { --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; --timeline-color: #4f8bc988; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-bottom: 80px; }
@@ -55,138 +55,150 @@
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; margin-top: 2px; flex-wrap: wrap; width: 100%; padding: 0 4px; }
     .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
     
-    .pain-1 { background-color: #4caf50; } /* 綠 */
-    .pain-2 { background-color: #ffb300; } /* 黃 */
-    .pain-3 { background-color: #f4511e; } /* 橘紅 */
-    .pain-4 { background-color: #d32f2f; } /* 紅 */
-    .pain-5 { background-color: #9c27b0; } /* 紫 */
+    .pain-1 { background-color: #4caf50; }
+    .pain-2 { background-color: #ffb300; }
+    .pain-3 { background-color: #f4511e; }
+    .pain-4 { background-color: #d32f2f; }
+    .pain-5 { background-color: #9c27b0; }
+
+    /* 登入遮罩 */
+    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #main-app { display: none; }
 </style>
 </head>
 <body>
 
-<div class="container">
-    <!-- 首頁 Dashboard (整合月曆) -->
-    <div id="tab-dashboard" class="tab-content active">
-        <h2>頭痛月曆與摘要</h2>
-        
-        <div class="section">
-            <div class="calendar-header">
-                <button class="action-btn" onclick="changeMonth(-1)">◀ 上個月</button>
-                <span id="cal-month-year">...</span>
-                <button class="action-btn" onclick="changeMonth(1)">下個月 ▶</button>
-            </div>
-            <div class="calendar-grid" id="cal-grid"></div>
-            <!-- 完整 1~5 分圖示 -->
-            <div style="margin-top:15px; font-size:12px; color:#aaa; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-1"></span> 1分</div>
-                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-2"></span> 2分</div>
-                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-3"></span> 3分</div>
-                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-4"></span> 4分</div>
-                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-5"></span> 5分</div>
-            </div>
-        </div>
+<!-- 登入畫面 -->
+<div id="login-overlay">
+    <h2>舒心頭痛日記</h2>
+    <p style="color: #aaa; margin-bottom: 30px;">請登入以同步您的雲端紀錄</p>
+    <button class="save-btn" style="width: 80%; max-width: 300px; background: #fff; color: #333;" id="btn-login">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" style="width: 20px; vertical-align: middle; margin-right: 10px;">
+        使用 Google 登入
+    </button>
+</div>
 
-        <div class="section">
-            <div class="section-title">數據摘要</div>
-            <div id="dash-summary" style="font-size: 15px; color:#ccc;"></div>
-        </div>
-
-        <button class="big-add-btn" onclick="startNewRecord()">➕ 紀錄當下頭痛</button>
-    </div>
-
-    <!-- 新增/編輯紀錄表單 (隱藏) -->
-    <div id="tab-record" class="tab-content">
-        <h2 id="form-title">新增紀錄</h2>
-        <div class="section">
-            <div class="section-title">發作時間 (點擊修改)</div>
-            <input type="datetime-local" id="record-time" onclick="try{this.showPicker();}catch(e){}">
-        </div>
-        <div class="section">
-            <div class="section-title">痛覺評分</div>
-            <div class="pain-scale">
-                <label><input type="radio" name="pain" value="1:有感"><div class="btn-check">1分：有感</div></label>
-                <label><input type="radio" name="pain" value="2:微痛"><div class="btn-check">2分：微痛</div></label>
-                <label><input type="radio" name="pain" value="3:該吃藥"><div class="btn-check">3分：該吃藥了</div></label>
-                <label><input type="radio" name="pain" value="4:反胃難眠"><div class="btn-check">4分：痛到反胃或睡不著</div></label>
-                <label><input type="radio" name="pain" value="5:爆痛藥無效"><div class="btn-check">5分：痛到爆，藥無效</div></label>
+<!-- 主程式區塊 -->
+<div id="main-app">
+    <div class="container">
+        <!-- 首頁 Dashboard -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h2>頭痛月曆與摘要</h2>
+                <button class="action-btn" id="btn-logout" style="background: transparent; border: 1px solid #555;">登出</button>
             </div>
-        </div>
-        <div class="section">
-            <div class="section-title">頭痛部位 (可多選)</div>
-            <div class="matrix">
-                <div class="matrix-header">左側</div><div class="matrix-header">右側</div>
-                <label><input type="checkbox" value="左前額" class="loc-check"><div class="btn-check">前額</div></label>
-                <label><input type="checkbox" value="右前額" class="loc-check"><div class="btn-check">前額</div></label>
-                <label><input type="checkbox" value="左眼眶" class="loc-check"><div class="btn-check">眼眶</div></label>
-                <label><input type="checkbox" value="右眼眶" class="loc-check"><div class="btn-check">眼眶</div></label>
-                <label><input type="checkbox" value="左太陽穴" class="loc-check"><div class="btn-check">太陽穴</div></label>
-                <label><input type="checkbox" value="右太陽穴" class="loc-check"><div class="btn-check">太陽穴</div></label>
-                <label><input type="checkbox" value="左側腦" class="loc-check"><div class="btn-check">側腦</div></label>
-                <label><input type="checkbox" value="右側腦" class="loc-check"><div class="btn-check">側腦</div></label>
-                <label><input type="checkbox" value="左後上方" class="loc-check"><div class="btn-check">後上方</div></label>
-                <label><input type="checkbox" value="右後上方" class="loc-check"><div class="btn-check">後上方</div></label>
-                <label><input type="checkbox" value="左後下方" class="loc-check"><div class="btn-check">後下方</div></label>
-                <label><input type="checkbox" value="右後下方" class="loc-check"><div class="btn-check">後下方</div></label>
-            </div>
-            <div class="btn-group" style="margin-top:10px;">
-                <label><input type="checkbox" value="深部/腦內" class="loc-check"><div class="btn-check">深部/腦內</div></label>
-            </div>
-        </div>
-        <div class="section">
-            <div class="section-title">持續時間 (可事後補填)</div>
-            <div class="btn-group">
-                <label><input type="radio" name="duration" value="1小時內"><div class="btn-check">1小時內</div></label>
-                <label><input type="radio" name="duration" value="1~3小時"><div class="btn-check">1~3小時</div></label>
-                <label><input type="radio" name="duration" value="半天"><div class="btn-check">半天</div></label>
-                <label><input type="radio" name="duration" value="整天"><div class="btn-check">整天</div></label>
-                <label><input type="radio" name="duration" value="超過一天"><div class="btn-check">超過一天</div></label>
-            </div>
-        </div>
-        <div class="section">
-            <div class="section-title">誘因與症狀 (可多選)</div>
-            <div class="btn-group" id="dynamic-triggers"></div>
-            <input type="text" id="custom-trigger" placeholder="輸入新誘因/症狀 (存檔後自動記憶)" style="margin-top:10px;">
-        </div>
-        <div class="section">
-            <div class="section-title">用藥與效果</div>
-            <div class="btn-group" id="dynamic-meds"></div>
-            <input type="text" id="custom-med" placeholder="輸入新藥物 (存檔後自動記憶)" style="margin-top:10px;">
             
-            <div class="btn-group" style="margin-top:15px;">
-                <label><input type="radio" name="effect" value="無效"><div class="btn-check">無效</div></label>
-                <label><input type="radio" name="effect" value="稍微緩解"><div class="btn-check">稍微緩解</div></label>
-                <label><input type="radio" name="effect" value="完全壓制"><div class="btn-check">完全壓制</div></label>
+            <div class="section">
+                <div class="calendar-header">
+                    <button class="action-btn" onclick="changeMonth(-1)">◀ 上個月</button>
+                    <span id="cal-month-year">...</span>
+                    <button class="action-btn" onclick="changeMonth(1)">下個月 ▶</button>
+                </div>
+                <div class="calendar-grid" id="cal-grid"></div>
+                <div style="margin-top:15px; font-size:12px; color:#aaa; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-1"></span> 1分</div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-2"></span> 2分</div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-3"></span> 3分</div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-4"></span> 4分</div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-5"></span> 5分</div>
+                </div>
             </div>
+
+            <div class="section">
+                <div class="section-title">數據摘要</div>
+                <div id="dash-summary" style="font-size: 15px; color:#ccc;"></div>
+            </div>
+
+            <button class="big-add-btn" onclick="startNewRecord()">➕ 紀錄當下頭痛</button>
         </div>
-        <div class="section">
-            <div class="section-title">備註</div>
-            <textarea id="memo" placeholder="其他細節..."></textarea>
+
+        <!-- 表單 -->
+        <div id="tab-record" class="tab-content">
+            <h2 id="form-title">新增紀錄</h2>
+            <div class="section">
+                <div class="section-title">發作時間 (點擊修改)</div>
+                <input type="datetime-local" id="record-time" onclick="try{this.showPicker();}catch(e){}">
+            </div>
+            <div class="section">
+                <div class="section-title">痛覺評分</div>
+                <div class="pain-scale">
+                    <label><input type="radio" name="pain" value="1:有感"><div class="btn-check">1分：有感</div></label>
+                    <label><input type="radio" name="pain" value="2:微痛"><div class="btn-check">2分：微痛</div></label>
+                    <label><input type="radio" name="pain" value="3:該吃藥"><div class="btn-check">3分：該吃藥了</div></label>
+                    <label><input type="radio" name="pain" value="4:反胃難眠"><div class="btn-check">4分：痛到反胃或睡不著</div></label>
+                    <label><input type="radio" name="pain" value="5:爆痛藥無效"><div class="btn-check">5分：痛到爆，藥無效</div></label>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">頭痛部位 (可多選)</div>
+                <div class="matrix">
+                    <div class="matrix-header">左側</div><div class="matrix-header">右側</div>
+                    <label><input type="checkbox" value="左前額" class="loc-check"><div class="btn-check">前額</div></label>
+                    <label><input type="checkbox" value="右前額" class="loc-check"><div class="btn-check">前額</div></label>
+                    <label><input type="checkbox" value="左眼眶" class="loc-check"><div class="btn-check">眼眶</div></label>
+                    <label><input type="checkbox" value="右眼眶" class="loc-check"><div class="btn-check">眼眶</div></label>
+                    <label><input type="checkbox" value="左太陽穴" class="loc-check"><div class="btn-check">太陽穴</div></label>
+                    <label><input type="checkbox" value="右太陽穴" class="loc-check"><div class="btn-check">太陽穴</div></label>
+                    <label><input type="checkbox" value="左側腦" class="loc-check"><div class="btn-check">側腦</div></label>
+                    <label><input type="checkbox" value="右側腦" class="loc-check"><div class="btn-check">側腦</div></label>
+                    <label><input type="checkbox" value="左後上方" class="loc-check"><div class="btn-check">後上方</div></label>
+                    <label><input type="checkbox" value="右後上方" class="loc-check"><div class="btn-check">後上方</div></label>
+                    <label><input type="checkbox" value="左後下方" class="loc-check"><div class="btn-check">後下方</div></label>
+                    <label><input type="checkbox" value="右後下方" class="loc-check"><div class="btn-check">後下方</div></label>
+                </div>
+                <div class="btn-group" style="margin-top:10px;">
+                    <label><input type="checkbox" value="深部/腦內" class="loc-check"><div class="btn-check">深部/腦內</div></label>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">持續時間 (可事後補填)</div>
+                <div class="btn-group">
+                    <label><input type="radio" name="duration" value="1小時內"><div class="btn-check">1小時內</div></label>
+                    <label><input type="radio" name="duration" value="1~3小時"><div class="btn-check">1~3小時</div></label>
+                    <label><input type="radio" name="duration" value="半天"><div class="btn-check">半天</div></label>
+                    <label><input type="radio" name="duration" value="整天"><div class="btn-check">整天</div></label>
+                    <label><input type="radio" name="duration" value="超過一天"><div class="btn-check">超過一天</div></label>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">誘因與症狀 (可多選)</div>
+                <div class="btn-group" id="dynamic-triggers"></div>
+                <input type="text" id="custom-trigger" placeholder="輸入新誘因/症狀 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
+            <div class="section">
+                <div class="section-title">用藥與效果</div>
+                <div class="btn-group" id="dynamic-meds"></div>
+                <input type="text" id="custom-med" placeholder="輸入新藥物 (存檔後自動記憶)" style="margin-top:10px;">
+                
+                <div class="btn-group" style="margin-top:15px;">
+                    <label><input type="radio" name="effect" value="無效"><div class="btn-check">無效</div></label>
+                    <label><input type="radio" name="effect" value="稍微緩解"><div class="btn-check">稍微緩解</div></label>
+                    <label><input type="radio" name="effect" value="完全壓制"><div class="btn-check">完全壓制</div></label>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">備註</div>
+                <textarea id="memo" placeholder="其他細節..."></textarea>
+            </div>
+            <input type="hidden" id="edit-id" value="">
+            <button class="save-btn" onclick="appLogic.saveRecord()" id="save-btn-text">儲存紀錄</button>
+            <button class="save-btn" style="background:#555; display:none;" id="cancel-edit-btn" onclick="appLogic.cancelEdit()">取消返回</button>
         </div>
-        <input type="hidden" id="edit-id" value="">
-        <button class="save-btn" onclick="saveRecord()" id="save-btn-text">儲存紀錄</button>
-        <button class="save-btn" style="background:#555; display:none;" id="cancel-edit-btn" onclick="cancelEdit()">取消返回</button>
+
+        <!-- 歷史紀錄 -->
+        <div id="tab-history" class="tab-content">
+            <h2>歷史紀錄</h2>
+            <div id="records-list"></div>
+        </div>
     </div>
 
-    <!-- 歷史紀錄 -->
-    <div id="tab-history" class="tab-content">
-        <h2>歷史紀錄</h2>
-        <div class="section" style="display:flex; gap:10px; margin-bottom: 20px;">
-            <button class="action-btn" style="flex:1; padding:12px; font-size:15px; margin:0;" onclick="exportData()">💾 匯出資料(備份)</button>
-            <label class="action-btn" style="flex:1; padding:12px; font-size:15px; margin:0; text-align:center; cursor:pointer;">
-                📂 匯入資料
-                <input type="file" id="import-file" style="display:none;" onchange="importData(event)" accept=".json">
-            </label>
-        </div>
-        <div id="records-list"></div>
+    <div class="nav">
+        <button id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🏠 首頁</button>
+        <button id="nav-history" onclick="switchTab('history')">📖 歷史紀錄</button>
     </div>
 </div>
 
-<div class="nav">
-    <button id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🏠 首頁</button>
-    <button id="nav-history" onclick="switchTab('history')">📖 歷史紀錄</button>
-</div>
-
-<!-- 完整版變化紀錄 Modal -->
+<!-- 變化 Modal -->
 <div class="modal-overlay" id="change-modal">
     <div class="modal-content">
         <h3 style="margin-bottom:15px; color: var(--primary-color);">➕ 紀錄轉移變化</h3>
@@ -224,114 +236,216 @@
         <div class="section-title">狀況備註</div>
         <input type="text" id="change-memo" placeholder="描述其他細節..." style="margin-bottom:15px;">
         
-        <button class="save-btn" onclick="saveChange()">儲存變化</button>
+        <button class="save-btn" onclick="appLogic.saveChange()">儲存變化</button>
         <button class="save-btn" style="background:#555;" onclick="closeModal()">取消</button>
     </div>
 </div>
 
-<script>
-    var currentCalDate = new Date();
-    var defaultPrefs = { triggers: ['吹到風', '冷氣變冷', '睡眠不足', '壓力', '生理期', '噁心', '畏光'], meds: ['普拿疼', '布洛芬(消炎)'] };
+<!-- Firebase 核心邏輯 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
 
-    function getPrefs() {
-        var p = localStorage.getItem('headache_prefs');
-        return p ? JSON.parse(p) : defaultPrefs;
-    }
-
-    function savePrefs(newT, newM) {
-        var p = getPrefs();
-        if(newT && !p.triggers.includes(newT)) p.triggers.push(newT);
-        if(newM && !p.meds.includes(newM)) p.meds.push(newM);
-        localStorage.setItem('headache_prefs', JSON.stringify(p));
-        renderDynamicButtons();
-    }
-
-    function renderDynamicButtons() {
-        var p = getPrefs();
-        var tHtml = p.triggers.map(function(t){ return '<label><input type="checkbox" value="'+t+'" class="trigger-check"><div class="btn-check">'+t+'</div></label>'; }).join('');
-        var mHtml = p.meds.map(function(m){ return '<label><input type="checkbox" value="'+m+'" class="med-check"><div class="btn-check">'+m+'</div></label>'; }).join('');
-        document.getElementById('dynamic-triggers').innerHTML = tHtml;
-        document.getElementById('dynamic-meds').innerHTML = mHtml;
-        
-        var mtHtml = p.triggers.map(function(t){ return '<label><input type="checkbox" value="'+t+'" class="modal-trigger-check"><div class="btn-check">'+t+'</div></label>'; }).join('');
-        var mmHtml = p.meds.map(function(m){ return '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>'; }).join('');
-        document.getElementById('modal-dynamic-triggers').innerHTML = mtHtml;
-        document.getElementById('modal-dynamic-meds').innerHTML = mmHtml;
-    }
-
-    function getLocalIsoStr(dateObj) {
-        var tzOffset = (new Date()).getTimezoneOffset() * 60000;
-        return (new Date(dateObj - tzOffset)).toISOString().slice(0, 16);
-    }
-
-    window.onload = function() {
-        renderDynamicButtons();
-        var matrixHtml = document.querySelector('#tab-record .matrix').innerHTML;
-        var btnGroupHtml = document.querySelector('#tab-record .matrix + .btn-group').outerHTML;
-        document.getElementById('change-matrix-container').innerHTML = matrixHtml + btnGroupHtml;
-        document.getElementById('change-matrix-container').querySelectorAll('.loc-check').forEach(function(el){ el.className = 'modal-loc-check'; });
-        renderCalendar();
-        updateDashboard();
+    const firebaseConfig = {
+      apiKey: "AIzaSyBclPKAEdvIhfREWzwXHxV5HhkfELwc5k0",
+      authDomain: "test1006-1009.firebaseapp.com",
+      projectId: "test1006-1009",
+      storageBucket: "test1006-1009.firebasestorage.app",
+      messagingSenderId: "1013562746709",
+      appId: "1:1013562746709:web:d136bd927e3b8aef1ff1dc",
+      measurementId: "G-93X8FWQZZM"
     };
 
-    function startNewRecord() {
-        var isEditing = document.getElementById('edit-id').value !== '';
-        if(isEditing) {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    let currentUser = null;
+    let globalRecords = [];
+    let globalPrefs = { triggers: ['吹到風', '冷氣變冷', '睡眠不足', '壓力', '生理期', '噁心', '畏光'], meds: ['普拿疼', '布洛芬(消炎)'] };
+
+    // 登入事件監聽
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            loadDataFromCloud();
+        } else {
+            currentUser = null;
+            document.getElementById('login-overlay').style.display = 'flex';
+            document.getElementById('main-app').style.display = 'none';
+        }
+    });
+
+    document.getElementById('btn-login').addEventListener('click', () => {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider).catch(error => alert("登入失敗: " + error.message));
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => { signOut(auth); });
+
+    // 從雲端讀取資料
+    function loadDataFromCloud() {
+        const dbRef = ref(db);
+        get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                globalRecords = data.records || [];
+                if(data.prefs) globalPrefs = data.prefs;
+            }
+            // 初始化 UI
+            var matrixHtml = document.querySelector('#tab-record .matrix').innerHTML;
+            var btnGroupHtml = document.querySelector('#tab-record .matrix + .btn-group').outerHTML;
+            document.getElementById('change-matrix-container').innerHTML = matrixHtml + btnGroupHtml;
+            document.getElementById('change-matrix-container').querySelectorAll('.loc-check').forEach(el => el.className = 'modal-loc-check');
+            
+            window.renderDynamicButtons();
+            window.renderCalendar();
+            window.updateDashboard();
+        });
+    }
+
+    // 寫入雲端
+    function syncToCloud() {
+        set(ref(db, `users/${currentUser.uid}`), {
+            records: globalRecords,
+            prefs: globalPrefs
+        });
+    }
+
+    // 暴露核心函式給全域 UI 呼叫
+    window.appLogic = {
+        getRecords: () => globalRecords,
+        getPrefs: () => globalPrefs,
+        savePrefs: (newT, newM) => {
+            if(newT && !globalPrefs.triggers.includes(newT)) globalPrefs.triggers.push(newT);
+            if(newM && !globalPrefs.meds.includes(newM)) globalPrefs.meds.push(newM);
+            syncToCloud();
+            window.renderDynamicButtons();
+        },
+        saveRecord: () => {
+            var id = document.getElementById('edit-id').value;
+            var time = document.getElementById('record-time').value;
+            if(!time) return alert("請填寫時間！");
+
+            var pain = window.getRadioVal('#tab-record', 'pain') || '未填寫';
+            var duration = window.getRadioVal('#tab-record', 'duration') || '未確認';
+            var effect = window.getRadioVal('#tab-record', 'effect');
+            
+            var locs = []; document.querySelectorAll('#tab-record .loc-check:checked').forEach(el => locs.push(el.value));
+            var triggers = []; document.querySelectorAll('#tab-record .trigger-check:checked').forEach(el => triggers.push(el.value));
+            var meds = []; document.querySelectorAll('#tab-record .med-check:checked').forEach(el => meds.push(el.value));
+            
+            var customT = document.getElementById('custom-trigger').value.trim();
+            var customM = document.getElementById('custom-med').value.trim();
+            if(customT) triggers.push(customT);
+            if(customM) meds.push(customM);
+            var memo = document.getElementById('memo').value.trim();
+            
+            if(customT || customM) window.appLogic.savePrefs(customT, customM);
+
+            if(id) {
+                var idx = globalRecords.findIndex(r => r.id == id);
+                if(idx > -1) {
+                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect, memo };
+                }
+                alert("編輯已儲存！");
+            } else {
+                globalRecords.push({ id: Date.now(), time, pain, duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+                alert("紀錄已儲存！");
+            }
+            globalRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
+            syncToCloud();
+            window.appLogic.cancelEdit();
+        },
+        saveChange: () => {
+            var id = document.getElementById('change-parent-id').value;
+            var editIndex = document.getElementById('change-edit-index').value;
+            var time = document.getElementById('change-time').value;
+            if(!time) return alert("請輸入時間");
+
+            var pain = window.getRadioVal('#change-modal', 'change-pain') || '未填寫';
+            var effect = window.getRadioVal('#change-modal', 'change-effect');
+            var locs = []; document.querySelectorAll('.modal-loc-check:checked').forEach(el => locs.push(el.value));
+            var triggers = []; document.querySelectorAll('.modal-trigger-check:checked').forEach(el => triggers.push(el.value));
+            var meds = []; document.querySelectorAll('.modal-med-check:checked').forEach(el => meds.push(el.value));
+            
+            var customT = document.getElementById('change-custom-trigger').value.trim();
+            var customM = document.getElementById('change-custom-med').value.trim();
+            if(customT) triggers.push(customT);
+            if(customM) meds.push(customM);
+            var memo = document.getElementById('change-memo').value.trim();
+            if(customT || customM) window.appLogic.savePrefs(customT, customM);
+
+            var idx = globalRecords.findIndex(r => r.id == id);
+            if(idx > -1) {
+                if(!globalRecords[idx].changes) globalRecords[idx].changes = [];
+                var changeData = { time, pain, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect, memo };
+                if(editIndex !== '') globalRecords[idx].changes[parseInt(editIndex)] = changeData;
+                else globalRecords[idx].changes.push(changeData);
+                globalRecords[idx].changes.sort((a,b) => new Date(a.time) - new Date(b.time));
+                syncToCloud();
+            }
+            window.closeModal();
+            window.switchTab('history'); // 重新渲染歷史紀錄
+        },
+        deleteRecord: (id) => {
+            if(confirm("確定刪除此整筆紀錄？")) {
+                globalRecords = globalRecords.filter(r => r.id != id);
+                syncToCloud();
+                window.switchTab('history');
+            }
+        },
+        deleteChange: (id, cIndex) => {
+            if(confirm("確定刪除此次變化？")) {
+                var idx = globalRecords.findIndex(r => r.id == id);
+                if(idx > -1) {
+                    globalRecords[idx].changes.splice(cIndex, 1);
+                    syncToCloud();
+                    window.switchTab('history');
+                }
+            }
+        },
+        cancelEdit: () => {
             document.getElementById('edit-id').value = '';
             document.getElementById('form-title').innerText = "新增紀錄";
             document.getElementById('save-btn-text').innerText = "儲存紀錄";
             document.getElementById('cancel-edit-btn').style.display = 'none';
-            document.querySelectorAll('#tab-record input[type="checkbox"], #tab-record input[type="radio"]').forEach(function(el){ el.checked = false; });
-            document.querySelectorAll('#tab-record input[type="text"], #tab-record textarea').forEach(function(el){ el.value = ''; });
+            document.querySelectorAll('#tab-record input[type="checkbox"], #tab-record input[type="radio"]').forEach(el => el.checked = false);
+            document.querySelectorAll('#tab-record input[type="text"], #tab-record textarea').forEach(el => el.value = '');
+            window.switchTab('history');
+        }
+    };
+</script>
+
+<script>
+    var currentCalDate = new Date();
+    function getLocalIsoStr(dateObj) {
+        var tzOffset = (new Date()).getTimezoneOffset() * 60000;
+        return (new Date(dateObj - tzOffset)).toISOString().slice(0, 16);
+    }
+    
+    window.getRadioVal = function(scope, name) { var el = document.querySelector(scope + ' input[name="' + name + '"]:checked'); return el ? el.value : ''; };
+
+    window.renderDynamicButtons = function() {
+        var p = window.appLogic ? window.appLogic.getPrefs() : {triggers:[], meds:[]};
+        document.getElementById('dynamic-triggers').innerHTML = p.triggers.map(t => '<label><input type="checkbox" value="'+t+'" class="trigger-check"><div class="btn-check">'+t+'</div></label>').join('');
+        document.getElementById('dynamic-meds').innerHTML = p.meds.map(m => '<label><input type="checkbox" value="'+m+'" class="med-check"><div class="btn-check">'+m+'</div></label>').join('');
+        document.getElementById('modal-dynamic-triggers').innerHTML = p.triggers.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-trigger-check"><div class="btn-check">'+t+'</div></label>').join('');
+        document.getElementById('modal-dynamic-meds').innerHTML = p.meds.map(m => '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>').join('');
+    };
+
+    window.startNewRecord = function() {
+        if(document.getElementById('edit-id').value !== '') {
+            window.appLogic.cancelEdit();
         }
         document.getElementById('record-time').value = getLocalIsoStr(new Date());
-        switchTab('record');
-    }
+        window.switchTab('record');
+    };
 
-    function getRecords() { return JSON.parse(localStorage.getItem('headache_records') || '[]'); }
-    function getRadioVal(scope, name) { var el = document.querySelector(scope + ' input[name="' + name + '"]:checked'); return el ? el.value : ''; }
-
-    function saveRecord() {
-        var id = document.getElementById('edit-id').value;
-        var time = document.getElementById('record-time').value;
-        if(!time) return alert("請填寫時間！");
-
-        var pain = getRadioVal('#tab-record', 'pain') || '未填寫';
-        var duration = getRadioVal('#tab-record', 'duration') || '未確認';
-        var effect = getRadioVal('#tab-record', 'effect');
-        
-        var locs = []; document.querySelectorAll('#tab-record .loc-check:checked').forEach(function(el){ locs.push(el.value); });
-        var triggers = []; document.querySelectorAll('#tab-record .trigger-check:checked').forEach(function(el){ triggers.push(el.value); });
-        var meds = []; document.querySelectorAll('#tab-record .med-check:checked').forEach(function(el){ meds.push(el.value); });
-        
-        var customT = document.getElementById('custom-trigger').value.trim();
-        var customM = document.getElementById('custom-med').value.trim();
-        if(customT) triggers.push(customT);
-        if(customM) meds.push(customM);
-        
-        var memo = document.getElementById('memo').value.trim();
-        if(customT || customM) savePrefs(customT, customM);
-
-        var records = getRecords();
-        if(id) {
-            var idx = records.findIndex(function(r){ return r.id == id; });
-            if(idx > -1) {
-                records[idx].time = time; records[idx].pain = pain; records[idx].duration = duration;
-                records[idx].locs = locs.join('、'); records[idx].triggers = triggers.join('、');
-                records[idx].meds = meds.join('、'); records[idx].effect = effect; records[idx].memo = memo;
-            }
-            alert("編輯已儲存！");
-        } else {
-            records.push({ id: Date.now(), time: time, pain: pain, duration: duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect: effect, memo: memo, changes: [] });
-            alert("紀錄已儲存！");
-        }
-        records.sort(function(a, b){ return new Date(b.time) - new Date(a.time); });
-        localStorage.setItem('headache_records', JSON.stringify(records));
-        cancelEdit(); 
-    }
-
-    function editRecord(id) {
-        var record = getRecords().find(function(r){ return r.id == id; });
+    window.editRecord = function(id) {
+        var record = window.appLogic.getRecords().find(r => r.id == id);
         if(!record) return;
         
         document.getElementById('edit-id').value = record.id;
@@ -339,205 +453,93 @@
         document.getElementById('memo').value = record.memo || '';
         document.getElementById('custom-trigger').value = '';
         document.getElementById('custom-med').value = '';
-        
-        document.querySelectorAll('#tab-record input[type="radio"], #tab-record input[type="checkbox"]').forEach(function(el){ el.checked = false; });
+        document.querySelectorAll('#tab-record input[type="radio"], #tab-record input[type="checkbox"]').forEach(el => el.checked = false);
         
         if(record.pain) { var p = document.querySelector('#tab-record input[name="pain"][value="' + record.pain + '"]'); if(p) p.checked = true; }
         if(record.duration) { var d = document.querySelector('#tab-record input[name="duration"][value="' + record.duration + '"]'); if(d) d.checked = true; }
         if(record.effect) { var e = document.querySelector('#tab-record input[name="effect"][value="' + record.effect + '"]'); if(e) e.checked = true; }
         
-        if(record.locs) record.locs.split('、').forEach(function(v){ var cb = document.querySelector('#tab-record .loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
-        if(record.triggers) record.triggers.split('、').forEach(function(v){ var cb = document.querySelector('#tab-record .trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
-        if(record.meds) record.meds.split('、').forEach(function(v){ var cb = document.querySelector('#tab-record .med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.locs) record.locs.split('、').forEach(v => { var cb = document.querySelector('#tab-record .loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.triggers) record.triggers.split('、').forEach(v => { var cb = document.querySelector('#tab-record .trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.meds) record.meds.split('、').forEach(v => { var cb = document.querySelector('#tab-record .med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         
         document.getElementById('form-title').innerText = "編輯紀錄";
         document.getElementById('save-btn-text').innerText = "儲存編輯";
         document.getElementById('cancel-edit-btn').style.display = 'block';
-        switchTab('record');
-    }
+        window.switchTab('record');
+    };
 
-    function cancelEdit() {
-        document.getElementById('edit-id').value = '';
-        document.getElementById('form-title').innerText = "新增紀錄";
-        document.getElementById('save-btn-text').innerText = "儲存紀錄";
-        document.getElementById('cancel-edit-btn').style.display = 'none';
-        document.querySelectorAll('#tab-record input[type="checkbox"], #tab-record input[type="radio"]').forEach(function(el){ el.checked = false; });
-        document.querySelectorAll('#tab-record input[type="text"], #tab-record textarea').forEach(function(el){ el.value = ''; });
-        switchTab('history');
-    }
-
-    // Modal 與變化編輯邏輯
-    function openChangeModal(id, cIndex) {
+    window.openChangeModal = function(id, cIndex) {
         document.getElementById('change-parent-id').value = id;
-        document.querySelectorAll('#change-modal input[type="radio"], #change-modal input[type="checkbox"]').forEach(function(el){ el.checked = false; });
+        document.querySelectorAll('#change-modal input[type="radio"], #change-modal input[type="checkbox"]').forEach(el => el.checked = false);
         document.getElementById('change-custom-trigger').value = '';
         document.getElementById('change-custom-med').value = '';
         document.getElementById('change-memo').value = '';
 
         if(cIndex !== undefined) {
             document.getElementById('change-edit-index').value = cIndex;
-            var record = getRecords().find(function(r){ return r.id == id; });
+            var record = window.appLogic.getRecords().find(r => r.id == id);
             var change = record.changes[cIndex];
-            
             document.getElementById('change-time').value = change.time;
             if(change.pain) { var p = document.querySelector('#change-modal input[name="change-pain"][value="' + change.pain + '"]'); if(p) p.checked = true; }
             if(change.effect) { var e = document.querySelector('#change-modal input[name="change-effect"][value="' + change.effect + '"]'); if(e) e.checked = true; }
-            if(change.locs) change.locs.split('、').forEach(function(v){ var cb = document.querySelector('.modal-loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
-            if(change.triggers) change.triggers.split('、').forEach(function(v){ var cb = document.querySelector('.modal-trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
-            if(change.meds) change.meds.split('、').forEach(function(v){ var cb = document.querySelector('.modal-med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.locs) change.locs.split('、').forEach(v => { var cb = document.querySelector('.modal-loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.triggers) change.triggers.split('、').forEach(v => { var cb = document.querySelector('.modal-trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.meds) change.meds.split('、').forEach(v => { var cb = document.querySelector('.modal-med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             document.getElementById('change-memo').value = change.memo || '';
         } else {
             document.getElementById('change-edit-index').value = '';
             document.getElementById('change-time').value = getLocalIsoStr(new Date());
         }
         document.getElementById('change-modal').style.display = 'flex';
-    }
+    };
 
-    function closeModal() { document.getElementById('change-modal').style.display = 'none'; }
+    window.closeModal = function() { document.getElementById('change-modal').style.display = 'none'; };
 
-    function saveChange() {
-        var id = document.getElementById('change-parent-id').value;
-        var editIndex = document.getElementById('change-edit-index').value;
-        var time = document.getElementById('change-time').value;
-        if(!time) return alert("請輸入時間");
-
-        var pain = getRadioVal('#change-modal', 'change-pain') || '未填寫';
-        var effect = getRadioVal('#change-modal', 'change-effect');
-        
-        var locs = []; document.querySelectorAll('.modal-loc-check:checked').forEach(function(el){ locs.push(el.value); });
-        var triggers = []; document.querySelectorAll('.modal-trigger-check:checked').forEach(function(el){ triggers.push(el.value); });
-        var meds = []; document.querySelectorAll('.modal-med-check:checked').forEach(function(el){ meds.push(el.value); });
-        
-        var customT = document.getElementById('change-custom-trigger').value.trim();
-        var customM = document.getElementById('change-custom-med').value.trim();
-        if(customT) triggers.push(customT);
-        if(customM) meds.push(customM);
-        
-        var memo = document.getElementById('change-memo').value.trim();
-        if(customT || customM) savePrefs(customT, customM);
-
-        var records = getRecords();
-        var index = records.findIndex(function(r){ return r.id == id; });
-        if(index > -1) {
-            if(!records[index].changes) records[index].changes = [];
-            var changeData = { time: time, pain: pain, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect: effect, memo: memo };
-            
-            if(editIndex !== '') {
-                records[index].changes[parseInt(editIndex)] = changeData;
-            } else {
-                records[index].changes.push(changeData);
-            }
-            records[index].changes.sort(function(a,b){ return new Date(a.time) - new Date(b.time); });
-            localStorage.setItem('headache_records', JSON.stringify(records));
-        }
-        closeModal();
-        renderHistory();
-        renderCalendar();
-    }
-
-    function deleteChange(id, cIndex) {
-        if(confirm("確定刪除此次變化？")) {
-            var records = getRecords();
-            var index = records.findIndex(function(r){ return r.id == id; });
-            if(index > -1) {
-                records[index].changes.splice(cIndex, 1);
-                localStorage.setItem('headache_records', JSON.stringify(records));
-                renderHistory();
-                renderCalendar();
-            }
-        }
-    }
-
-    function deleteRecord(id) {
-        if(confirm("確定刪除此整筆紀錄（含所有變化）？")) {
-            var records = getRecords().filter(function(r){ return r.id != id; });
-            localStorage.setItem('headache_records', JSON.stringify(records));
-            renderHistory();
-            updateDashboard();
-            renderCalendar();
-        }
-    }
-
-    // 匯出與匯入功能
-    function exportData() {
-        var data = localStorage.getItem('headache_records');
-        if(!data || data === '[]') return alert("沒有資料可匯出");
-        var blob = new Blob([data], {type: "application/json"});
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = "headache_backup.json";
-        a.click();
-    }
-
-    function importData(e) {
-        var file = e.target.files[0];
-        if(!file) return;
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-            try {
-                var json = JSON.parse(evt.target.result);
-                if(Array.isArray(json)) {
-                    localStorage.setItem('headache_records', JSON.stringify(json));
-                    alert("匯入成功！");
-                    location.reload();
-                } else { alert("檔案格式不正確"); }
-            } catch(err) { alert("讀取失敗，可能不是有效的 JSON 檔案"); }
-        };
-        reader.readAsText(file);
-    }
-
-    function switchTab(tab) {
-        document.querySelectorAll('.tab-content, .nav button').forEach(function(el){ el.classList.remove('active'); });
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-content, .nav button').forEach(el => el.classList.remove('active'));
         var tabEl = document.getElementById('tab-' + tab);
         var navEl = document.getElementById('nav-' + (tab === 'record' ? 'dashboard' : tab)); 
         if(tabEl) tabEl.classList.add('active');
         if(navEl) navEl.classList.add('active'); 
         
-        if(tab === 'dashboard') { updateDashboard(); renderCalendar(); }
-        if(tab === 'history') renderHistory();
-    }
+        if(tab === 'dashboard') { window.updateDashboard(); window.renderCalendar(); }
+        if(tab === 'history') window.renderHistory();
+    };
 
-    function updateDashboard() {
-        var records = getRecords();
+    window.updateDashboard = function() {
+        var records = window.appLogic ? window.appLogic.getRecords() : [];
         var now = new Date();
-        var thisMonthCount = records.filter(function(r){
-            var d = new Date(r.time);
-            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-        }).length;
+        var thisMonthCount = records.filter(r => { var d = new Date(r.time); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }).length;
         document.getElementById('dash-summary').innerHTML = '這個月已發作：<strong>' + thisMonthCount + '</strong> 次<br>總計所有紀錄：<strong>' + records.length + '</strong> 筆';
-    }
+    };
 
-    function renderHistory() {
-        var records = getRecords();
+    window.renderHistory = function() {
+        var records = window.appLogic ? window.appLogic.getRecords() : [];
         var listDiv = document.getElementById('records-list');
         if(records.length === 0) { listDiv.innerHTML = "<p>尚無紀錄。</p>"; return; }
 
         var html = '';
-        records.forEach(function(r){
+        records.forEach(r => {
             var dateStr = r.time.replace('T', ' ');
             var changesHtml = '';
             if(r.changes && r.changes.length > 0) {
                 changesHtml = '<div class="timeline">';
-                r.changes.forEach(function(c, cIdx){
+                r.changes.forEach((c, cIdx) => {
                     var cTime = c.time.split('T')[1] || c.time;
-                    changesHtml += '<div class="timeline-item">';
-                    changesHtml += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">';
+                    changesHtml += '<div class="timeline-item"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">';
                     changesHtml += '<div style="font-size:14px; font-weight:bold; color:var(--primary-color);">🕒 第 ' + (cIdx+1) + ' 次變化 (' + cTime + ')</div>';
-                    changesHtml += '<div><span style="cursor:pointer; margin-right:10px; font-size:16px;" onclick="openChangeModal(' + r.id + ', ' + cIdx + ')">✏️</span><span style="cursor:pointer; font-size:16px;" onclick="deleteChange(' + r.id + ', ' + cIdx + ')">🗑️</span></div>';
-                    changesHtml += '</div>';
+                    changesHtml += '<div><span style="cursor:pointer; margin-right:10px; font-size:16px;" onclick="openChangeModal(' + r.id + ', ' + cIdx + ')">✏️</span><span style="cursor:pointer; font-size:16px;" onclick="window.appLogic.deleteChange(' + r.id + ', ' + cIdx + ')">🗑️</span></div></div>';
                     changesHtml += '<div><strong>痛覺：</strong>' + c.pain.split(':')[0] + '分</div>';
                     if(c.locs) changesHtml += '<div><strong>部位：</strong>' + c.locs + '</div>';
                     if(c.triggers) changesHtml += '<div><strong>變數：</strong>' + c.triggers + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
-                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div>';
-                    changesHtml += '</div>';
+                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div></div>';
                 });
                 changesHtml += '</div>';
             }
 
-            html += '<div class="record-card">';
-            html += '<div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '分</div>';
+            html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '分</div>';
             html += '<div class="record-detail"><strong>持續時間：</strong>' + (r.duration || '未確認') + '</div>';
             html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
             html += '<div class="record-detail"><strong>誘因/症狀：</strong>' + (r.triggers || '無') + '</div>';
@@ -547,25 +549,24 @@
             html += '<div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">';
             html += '<button class="action-btn" onclick="openChangeModal(' + r.id + ')">➕ 新增轉移變化</button>';
             html += '<button class="action-btn" onclick="editRecord(' + r.id + ')">✏️ 編輯主紀錄</button>';
-            html += '<button class="action-btn" style="background:var(--danger-color);" onclick="deleteRecord(' + r.id + ')">🗑️ 刪除整筆</button>';
+            html += '<button class="action-btn" style="background:var(--danger-color);" onclick="window.appLogic.deleteRecord(' + r.id + ')">🗑️ 刪除整筆</button>';
             html += '</div></div>';
         });
         listDiv.innerHTML = html;
-    }
+    };
 
-    function changeMonth(offset) {
+    window.changeMonth = function(offset) {
         currentCalDate.setMonth(currentCalDate.getMonth() + offset);
-        renderCalendar();
-    }
+        window.renderCalendar();
+    };
 
-    function renderCalendar() {
+    window.renderCalendar = function() {
         var grid = document.getElementById('cal-grid');
         var monthYear = document.getElementById('cal-month-year');
         var year = currentCalDate.getFullYear();
         var month = currentCalDate.getMonth();
         
         monthYear.innerText = year + ' 年 ' + (month + 1) + ' 月';
-        
         var html = '';
         var days = ['日','一','二','三','四','五','六'];
         for(var d=0; d<7; d++) html += '<div class="cal-day-name">' + days[d] + '</div>';
@@ -574,15 +575,14 @@
         var daysInMonth = new Date(year, month + 1, 0).getDate();
         for(var i=0; i<firstDay; i++) html += '<div></div>';
         
-        var records = getRecords();
+        var records = window.appLogic ? window.appLogic.getRecords() : [];
         var dayRecords = {}; 
-        
-        records.forEach(function(r){
+        records.forEach(r => {
             var d = new Date(r.time);
             if(d.getFullYear() === year && d.getMonth() === month) {
                 var dateKey = d.getDate();
                 var p = parseInt(r.pain.charAt(0)) || 1;
-                if(r.changes) { r.changes.forEach(function(c){ var cp = parseInt(c.pain.charAt(0))||1; if(cp>p) p=cp; }); }
+                if(r.changes) { r.changes.forEach(c => { var cp = parseInt(c.pain.charAt(0))||1; if(cp>p) p=cp; }); }
                 if(!dayRecords[dateKey]) dayRecords[dateKey] = [];
                 dayRecords[dateKey].push(p);
             }
@@ -592,15 +592,13 @@
             var dotHtml = '';
             if(dayRecords[i]) {
                 dotHtml = '<div class="dots-wrapper">';
-                dayRecords[i].forEach(function(painVal){
-                    dotHtml += '<div class="cal-dot pain-' + painVal + '"></div>';
-                });
+                dayRecords[i].forEach(painVal => { dotHtml += '<div class="cal-dot pain-' + painVal + '"></div>'; });
                 dotHtml += '</div>';
             }
             html += '<div class="cal-cell">' + i + dotHtml + '</div>';
         }
         grid.innerHTML = html;
-    }
+    };
 </script>
 </body>
 </html>
