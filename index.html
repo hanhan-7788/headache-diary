@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- 強制防快取設定 (防止網頁更新卡住) -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -119,6 +118,12 @@
                 <div class="section-title">數據摘要</div>
                 <div id="dash-summary" style="font-size: 15px; color:#ccc;"></div>
             </div>
+
+            <!-- 清理與還原標籤的設定區塊 -->
+            <div class="section" style="margin-top: 30px;">
+                <div class="section-title" style="color: #888; border-color: #444;">⚙️ 系統設定</div>
+                <button class="action-btn" style="width: 100%; padding: 12px; background: #333;" onclick="appLogic.resetPrefs()">🔄 重置預設標籤選項 (清除不要的自訂項目)</button>
+            </div>
         </div>
 
         <!-- 表單 -->
@@ -198,7 +203,7 @@
         <div id="tab-history" class="tab-content">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="margin: 0;">歷史紀錄</h2>
-                <button class="action-btn" style="background: #388e3c;" onclick="window.exportCSV()">📄 匯出 CSV</button>
+                <button class="action-btn" style="background: #388e3c;" onclick="window.exportCSV()">📄 匯出 CSV 報表</button>
             </div>
             <div id="records-list"></div>
         </div>
@@ -210,7 +215,7 @@
         </div>
     </div>
 
-    <!-- 底部導覽列改為三個 -->
+    <!-- 底部導覽列 -->
     <div class="nav">
         <button id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🏠 首頁</button>
         <button id="nav-history" onclick="switchTab('history')">📖 歷史</button>
@@ -282,7 +287,13 @@
     const db = getDatabase(app);
     let currentUser = null;
     let globalRecords = [];
-    let globalPrefs = { triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期', '噁心', '畏光'], meds: ['普拿疼', '布洛芬(消炎)'] };
+    
+    // 你的最新預設選項清單
+    const LATEST_DEFAULT_PREFS = { 
+        triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期', '噁心', '畏光'], 
+        meds: ['普拿疼', '布洛芬(消炎)'] 
+    };
+    let globalPrefs = JSON.parse(JSON.stringify(LATEST_DEFAULT_PREFS));
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -336,6 +347,14 @@
     window.appLogic = {
         getRecords: () => globalRecords,
         getPrefs: () => globalPrefs,
+        resetPrefs: () => {
+            if(confirm("確定要將誘因與用藥選項，還原成最新的預設值嗎？（這不會刪除你的歷史頭痛紀錄）")) {
+                globalPrefs = JSON.parse(JSON.stringify(LATEST_DEFAULT_PREFS));
+                syncToCloud();
+                window.renderDynamicButtons();
+                window.showToast("標籤選項已重置完成！");
+            }
+        },
         savePrefs: (newT, newM) => {
             if(newT && !globalPrefs.triggers.includes(newT)) globalPrefs.triggers.push(newT);
             if(newM && !globalPrefs.meds.includes(newM)) globalPrefs.meds.push(newM);
@@ -441,7 +460,6 @@
 <script>
     var currentCalDate = new Date();
     
-    // Toast 提示元件邏輯
     window.showToast = function(msg) {
         var toast = document.createElement('div');
         toast.innerText = msg;
@@ -631,7 +649,6 @@
         grid.innerHTML = html;
     };
 
-    // 繪製圖表函數
     function makeBarHtml(label, count, maxCount, colorClass) {
         var pct = maxCount === 0 ? 0 : Math.round((count/maxCount)*100);
         return `
@@ -672,14 +689,12 @@
             }
         });
 
-        // 痛覺圖表
         var maxPain = Math.max(...Object.values(painCounts), 0);
         var painHtml = '';
         for(let i=1; i<=5; i++) {
             painHtml += makeBarHtml(i + '分痛覺', painCounts[i], maxPain, 'pain-' + i);
         }
 
-        // 誘因排行榜
         var sortedTriggers = Object.entries(triggerCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
         var maxTrigger = sortedTriggers.length > 0 ? sortedTriggers[0][1] : 0;
         var triggerHtml = sortedTriggers.length > 0 ? sortedTriggers.map(t => makeBarHtml(t[0], t[1], maxTrigger, 'pain-fill')).join('') : '<div style="color:#aaa; font-size:14px;">尚無紀錄</div>';
