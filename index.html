@@ -20,7 +20,6 @@
     .section { background: var(--surface-color); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
     .section-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;}
     
-    /* 修正電腦版點擊時間的手感 */
     input[type="datetime-local"], input[type="text"], textarea { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; font-size: 16px; cursor: pointer;}
     textarea { resize: vertical; min-height: 80px; cursor: text;}
     input[type="text"] { cursor: text; }
@@ -53,13 +52,14 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
     .cal-day-name { font-weight: bold; color: #888; margin-bottom: 5px; }
     .cal-cell { height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-color); border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; position: relative; }
-    .cal-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 2px; }
+    .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; margin-top: 2px; flex-wrap: wrap; width: 100%; padding: 0 4px; }
+    .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
     
-    .pain-1 { background-color: #556b2f; }
-    .pain-2 { background-color: #b8860b; }
-    .pain-3 { background-color: #cd5c5c; }
-    .pain-4 { background-color: #8b0000; }
-    .pain-5 { background-color: #800080; }
+    .pain-1 { background-color: #4caf50; } /* 綠 */
+    .pain-2 { background-color: #ffb300; } /* 黃 */
+    .pain-3 { background-color: #f4511e; } /* 橘紅 */
+    .pain-4 { background-color: #d32f2f; } /* 紅 */
+    .pain-5 { background-color: #9c27b0; } /* 紫 */
 </style>
 </head>
 <body>
@@ -76,10 +76,12 @@
                 <button class="action-btn" onclick="changeMonth(1)">下個月 ▶</button>
             </div>
             <div class="calendar-grid" id="cal-grid"></div>
-            <!-- 月曆分數圖示 -->
-            <div style="margin-top:15px; font-size:13px; color:#aaa; display:flex; gap:12px; justify-content:center; align-items:center;">
+            <!-- 完整 1~5 分圖示 -->
+            <div style="margin-top:15px; font-size:12px; color:#aaa; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-1"></span> 1分</div>
+                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-2"></span> 2分</div>
                 <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-3"></span> 3分</div>
+                <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-4"></span> 4分</div>
                 <div style="display:flex; align-items:center; gap:4px;"><span class="cal-dot pain-5"></span> 5分</div>
             </div>
         </div>
@@ -168,6 +170,13 @@
     <!-- 歷史紀錄 -->
     <div id="tab-history" class="tab-content">
         <h2>歷史紀錄</h2>
+        <div class="section" style="display:flex; gap:10px; margin-bottom: 20px;">
+            <button class="action-btn" style="flex:1; padding:12px; font-size:15px; margin:0;" onclick="exportData()">💾 匯出資料(備份)</button>
+            <label class="action-btn" style="flex:1; padding:12px; font-size:15px; margin:0; text-align:center; cursor:pointer;">
+                📂 匯入資料
+                <input type="file" id="import-file" style="display:none;" onchange="importData(event)" accept=".json">
+            </label>
+        </div>
         <div id="records-list"></div>
     </div>
 </div>
@@ -182,6 +191,7 @@
     <div class="modal-content">
         <h3 style="margin-bottom:15px; color: var(--primary-color);">➕ 紀錄轉移變化</h3>
         <input type="hidden" id="change-parent-id">
+        <input type="hidden" id="change-edit-index" value="">
         
         <div class="section-title">變化時間 (點擊修改)</div>
         <input type="datetime-local" id="change-time" onclick="try{this.showPicker();}catch(e){}" style="margin-bottom:15px;">
@@ -196,9 +206,7 @@
         </div>
 
         <div class="section-title">轉移部位 (可多選)</div>
-        <div class="matrix" style="margin-bottom:15px;" id="change-matrix-container">
-            <!-- JS 自動載入矩陣 -->
-        </div>
+        <div class="matrix" style="margin-bottom:15px;" id="change-matrix-container"></div>
         
         <div class="section-title">新誘因/變數 (可多選)</div>
         <div class="btn-group" id="modal-dynamic-triggers" style="margin-bottom:10px;"></div>
@@ -242,11 +250,9 @@
         var p = getPrefs();
         var tHtml = p.triggers.map(function(t){ return '<label><input type="checkbox" value="'+t+'" class="trigger-check"><div class="btn-check">'+t+'</div></label>'; }).join('');
         var mHtml = p.meds.map(function(m){ return '<label><input type="checkbox" value="'+m+'" class="med-check"><div class="btn-check">'+m+'</div></label>'; }).join('');
-        
         document.getElementById('dynamic-triggers').innerHTML = tHtml;
         document.getElementById('dynamic-meds').innerHTML = mHtml;
         
-        // Modal 的按鈕 (class 不同以區分)
         var mtHtml = p.triggers.map(function(t){ return '<label><input type="checkbox" value="'+t+'" class="modal-trigger-check"><div class="btn-check">'+t+'</div></label>'; }).join('');
         var mmHtml = p.meds.map(function(m){ return '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>'; }).join('');
         document.getElementById('modal-dynamic-triggers').innerHTML = mtHtml;
@@ -260,12 +266,10 @@
 
     window.onload = function() {
         renderDynamicButtons();
-        // 複製部位矩陣到 Modal
         var matrixHtml = document.querySelector('#tab-record .matrix').innerHTML;
         var btnGroupHtml = document.querySelector('#tab-record .matrix + .btn-group').outerHTML;
         document.getElementById('change-matrix-container').innerHTML = matrixHtml + btnGroupHtml;
         document.getElementById('change-matrix-container').querySelectorAll('.loc-check').forEach(function(el){ el.className = 'modal-loc-check'; });
-        
         renderCalendar();
         updateDashboard();
     };
@@ -321,11 +325,9 @@
             records.push({ id: Date.now(), time: time, pain: pain, duration: duration, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect: effect, memo: memo, changes: [] });
             alert("紀錄已儲存！");
         }
-
         records.sort(function(a, b){ return new Date(b.time) - new Date(a.time); });
         localStorage.setItem('headache_records', JSON.stringify(records));
-        
-        cancelEdit(); // 清空並跳回歷史
+        cancelEdit(); 
     }
 
     function editRecord(id) {
@@ -364,13 +366,30 @@
         switchTab('history');
     }
 
-    function openChangeModal(id) {
+    // Modal 與變化編輯邏輯
+    function openChangeModal(id, cIndex) {
         document.getElementById('change-parent-id').value = id;
-        document.getElementById('change-time').value = getLocalIsoStr(new Date());
-        document.getElementById('change-memo').value = '';
+        document.querySelectorAll('#change-modal input[type="radio"], #change-modal input[type="checkbox"]').forEach(function(el){ el.checked = false; });
         document.getElementById('change-custom-trigger').value = '';
         document.getElementById('change-custom-med').value = '';
-        document.querySelectorAll('#change-modal input[type="radio"], #change-modal input[type="checkbox"]').forEach(function(el){ el.checked = false; });
+        document.getElementById('change-memo').value = '';
+
+        if(cIndex !== undefined) {
+            document.getElementById('change-edit-index').value = cIndex;
+            var record = getRecords().find(function(r){ return r.id == id; });
+            var change = record.changes[cIndex];
+            
+            document.getElementById('change-time').value = change.time;
+            if(change.pain) { var p = document.querySelector('#change-modal input[name="change-pain"][value="' + change.pain + '"]'); if(p) p.checked = true; }
+            if(change.effect) { var e = document.querySelector('#change-modal input[name="change-effect"][value="' + change.effect + '"]'); if(e) e.checked = true; }
+            if(change.locs) change.locs.split('、').forEach(function(v){ var cb = document.querySelector('.modal-loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.triggers) change.triggers.split('、').forEach(function(v){ var cb = document.querySelector('.modal-trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.meds) change.meds.split('、').forEach(function(v){ var cb = document.querySelector('.modal-med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            document.getElementById('change-memo').value = change.memo || '';
+        } else {
+            document.getElementById('change-edit-index').value = '';
+            document.getElementById('change-time').value = getLocalIsoStr(new Date());
+        }
         document.getElementById('change-modal').style.display = 'flex';
     }
 
@@ -378,6 +397,7 @@
 
     function saveChange() {
         var id = document.getElementById('change-parent-id').value;
+        var editIndex = document.getElementById('change-edit-index').value;
         var time = document.getElementById('change-time').value;
         if(!time) return alert("請輸入時間");
 
@@ -400,16 +420,32 @@
         var index = records.findIndex(function(r){ return r.id == id; });
         if(index > -1) {
             if(!records[index].changes) records[index].changes = [];
-            records[index].changes.push({ 
-                time: time, pain: pain, locs: locs.join('、'), 
-                triggers: triggers.join('、'), meds: meds.join('、'), 
-                effect: effect, memo: memo 
-            });
+            var changeData = { time: time, pain: pain, locs: locs.join('、'), triggers: triggers.join('、'), meds: meds.join('、'), effect: effect, memo: memo };
+            
+            if(editIndex !== '') {
+                records[index].changes[parseInt(editIndex)] = changeData;
+            } else {
+                records[index].changes.push(changeData);
+            }
             records[index].changes.sort(function(a,b){ return new Date(a.time) - new Date(b.time); });
             localStorage.setItem('headache_records', JSON.stringify(records));
         }
         closeModal();
         renderHistory();
+        renderCalendar();
+    }
+
+    function deleteChange(id, cIndex) {
+        if(confirm("確定刪除此次變化？")) {
+            var records = getRecords();
+            var index = records.findIndex(function(r){ return r.id == id; });
+            if(index > -1) {
+                records[index].changes.splice(cIndex, 1);
+                localStorage.setItem('headache_records', JSON.stringify(records));
+                renderHistory();
+                renderCalendar();
+            }
+        }
     }
 
     function deleteRecord(id) {
@@ -422,12 +458,39 @@
         }
     }
 
+    // 匯出與匯入功能
+    function exportData() {
+        var data = localStorage.getItem('headache_records');
+        if(!data || data === '[]') return alert("沒有資料可匯出");
+        var blob = new Blob([data], {type: "application/json"});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = "headache_backup.json";
+        a.click();
+    }
+
+    function importData(e) {
+        var file = e.target.files[0];
+        if(!file) return;
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                var json = JSON.parse(evt.target.result);
+                if(Array.isArray(json)) {
+                    localStorage.setItem('headache_records', JSON.stringify(json));
+                    alert("匯入成功！");
+                    location.reload();
+                } else { alert("檔案格式不正確"); }
+            } catch(err) { alert("讀取失敗，可能不是有效的 JSON 檔案"); }
+        };
+        reader.readAsText(file);
+    }
+
     function switchTab(tab) {
         document.querySelectorAll('.tab-content, .nav button').forEach(function(el){ el.classList.remove('active'); });
-        
         var tabEl = document.getElementById('tab-' + tab);
         var navEl = document.getElementById('nav-' + (tab === 'record' ? 'dashboard' : tab)); 
-        
         if(tabEl) tabEl.classList.add('active');
         if(navEl) navEl.classList.add('active'); 
         
@@ -456,9 +519,13 @@
             var changesHtml = '';
             if(r.changes && r.changes.length > 0) {
                 changesHtml = '<div class="timeline">';
-                r.changes.forEach(function(c){
+                r.changes.forEach(function(c, cIdx){
                     var cTime = c.time.split('T')[1] || c.time;
-                    changesHtml += '<div class="timeline-item"><div style="font-size:14px; font-weight:bold; color:var(--primary-color); margin-bottom:5px;">🕒 ' + cTime + ' 變化</div>';
+                    changesHtml += '<div class="timeline-item">';
+                    changesHtml += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">';
+                    changesHtml += '<div style="font-size:14px; font-weight:bold; color:var(--primary-color);">🕒 第 ' + (cIdx+1) + ' 次變化 (' + cTime + ')</div>';
+                    changesHtml += '<div><span style="cursor:pointer; margin-right:10px; font-size:16px;" onclick="openChangeModal(' + r.id + ', ' + cIdx + ')">✏️</span><span style="cursor:pointer; font-size:16px;" onclick="deleteChange(' + r.id + ', ' + cIdx + ')">🗑️</span></div>';
+                    changesHtml += '</div>';
                     changesHtml += '<div><strong>痛覺：</strong>' + c.pain.split(':')[0] + '分</div>';
                     if(c.locs) changesHtml += '<div><strong>部位：</strong>' + c.locs + '</div>';
                     if(c.triggers) changesHtml += '<div><strong>變數：</strong>' + c.triggers + '</div>';
@@ -478,9 +545,9 @@
             if(r.memo) html += '<div class="record-detail"><strong>備註：</strong>' + r.memo + '</div>';
             html += changesHtml;
             html += '<div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">';
-            html += '<button class="action-btn" onclick="openChangeModal(' + r.id + ')">➕ 紀錄轉移變化</button>';
-            html += '<button class="action-btn" onclick="editRecord(' + r.id + ')">✏️ 編輯</button>';
-            html += '<button class="action-btn" style="background:var(--danger-color);" onclick="deleteRecord(' + r.id + ')">🗑️ 刪除</button>';
+            html += '<button class="action-btn" onclick="openChangeModal(' + r.id + ')">➕ 新增轉移變化</button>';
+            html += '<button class="action-btn" onclick="editRecord(' + r.id + ')">✏️ 編輯主紀錄</button>';
+            html += '<button class="action-btn" style="background:var(--danger-color);" onclick="deleteRecord(' + r.id + ')">🗑️ 刪除整筆</button>';
             html += '</div></div>';
         });
         listDiv.innerHTML = html;
@@ -508,20 +575,29 @@
         for(var i=0; i<firstDay; i++) html += '<div></div>';
         
         var records = getRecords();
-        var dayPains = {};
+        var dayRecords = {}; 
+        
         records.forEach(function(r){
             var d = new Date(r.time);
             if(d.getFullYear() === year && d.getMonth() === month) {
                 var dateKey = d.getDate();
                 var p = parseInt(r.pain.charAt(0)) || 1;
                 if(r.changes) { r.changes.forEach(function(c){ var cp = parseInt(c.pain.charAt(0))||1; if(cp>p) p=cp; }); }
-                if(!dayPains[dateKey] || p > dayPains[dateKey]) dayPains[dateKey] = p;
+                if(!dayRecords[dateKey]) dayRecords[dateKey] = [];
+                dayRecords[dateKey].push(p);
             }
         });
 
         for(var i=1; i<=daysInMonth; i++) {
-            var dot = dayPains[i] ? '<div class="cal-dot pain-' + dayPains[i] + '"></div>' : '';
-            html += '<div class="cal-cell">' + i + dot + '</div>';
+            var dotHtml = '';
+            if(dayRecords[i]) {
+                dotHtml = '<div class="dots-wrapper">';
+                dayRecords[i].forEach(function(painVal){
+                    dotHtml += '<div class="cal-dot pain-' + painVal + '"></div>';
+                });
+                dotHtml += '</div>';
+            }
+            html += '<div class="cal-cell">' + i + dotHtml + '</div>';
         }
         grid.innerHTML = html;
     }
