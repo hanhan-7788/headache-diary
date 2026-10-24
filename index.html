@@ -13,6 +13,7 @@
         --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; 
         --timeline-color: #4f8bc988; 
         --period-color: #6c404f;
+        --period-bg-color: #9a505e;
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-bottom: 80px; }
     * { box-sizing: border-box; }
@@ -45,13 +46,22 @@
     .big-add-btn { background: var(--primary-color); color: #fff; border: none; padding: 20px; width: 100%; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(79,139,201,0.3); margin-bottom: 15px;}
     .action-btn { background: #444; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 5px; margin-bottom: 5px;}
     
-    .record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    .record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; transition: 0.3s; }
     .record-time { font-weight: bold; color: var(--primary-color); font-size: 18px; margin-bottom: 5px;}
     .record-detail { font-size: 14px; margin-bottom: 4px; color: #ddd;}
     .timeline { margin-top: 10px; padding-left: 15px; border-left: 2px dashed var(--timeline-color); }
     .timeline-item { margin-bottom: 10px; position: relative; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; color: #ddd; }
     .timeline-item::before { content: ''; position: absolute; left: -21px; top: 12px; width: 10px; height: 10px; background: var(--primary-color); border-radius: 50%; }
     
+    /* 剛編輯完畢的發光動畫 */
+    @keyframes highlight-glow {
+        0% { border-color: var(--primary-color); box-shadow: 0 0 18px var(--primary-color); background-color: rgba(79, 139, 201, 0.15); }
+        100% { border-color: var(--border-color); box-shadow: none; background-color: var(--surface-color); }
+    }
+    .highlight-card {
+        animation: highlight-glow 2.5s ease-out forwards;
+    }
+
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
     .modal-content { background: var(--surface-color); width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; margin-bottom: 30px;}
     
@@ -63,9 +73,9 @@
     .today-highlight { background-color: #666; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
     
     .period-border { border: 2px solid var(--period-color) !important; }
-    .period-filled { background: #9a505e !important; color: #fff; border-color: #9a505e !important; font-weight: bold;}
+    .period-filled { background: var(--period-bg-color) !important; color: #fff; border-color: var(--period-bg-color) !important; font-weight: bold;}
     .editable-cell { cursor: pointer; }
-    .editable-cell:hover { border-color: #9a505e; }
+    .editable-cell:hover { border-color: var(--period-bg-color); }
 
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 4px; }
     .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -77,7 +87,6 @@
     .pain-5 { background-color: #8e24aa; }
     .pain-fill { background-color: var(--primary-color); }
 
-    /* 懸浮儲存按鈕 (右下角) */
     .fab-save {
         position: fixed;
         bottom: 80px;
@@ -93,7 +102,7 @@
         z-index: 90;
         cursor: pointer;
         transition: opacity 0.3s ease, transform 0.3s ease;
-        display: none; /* 僅在 record 頁面顯示 */
+        display: none;
         align-items: center;
         gap: 8px;
     }
@@ -109,7 +118,6 @@
 </head>
 <body>
 
-<!-- 登入畫面 -->
 <div id="login-overlay">
     <h2>舒心頭痛日記</h2>
     <p style="color: #aaa; margin-bottom: 30px;">請登入以同步您的雲端紀錄</p>
@@ -124,13 +132,10 @@
     </button>
 </div>
 
-<!-- 主程式區塊 -->
 <div id="main-app">
-    <!-- 全域懸浮儲存按鈕 -->
     <button class="fab-save" id="fab-save" onclick="appLogic.saveRecord()">💾 <span>儲存紀錄</span></button>
 
     <div class="container">
-        <!-- 1. 首頁 Dashboard -->
         <div id="tab-dashboard" class="tab-content active">
             <div style="display:flex; justify-content: space-between; align-items: center;">
                 <h2>🏠 頭痛月曆與摘要</h2>
@@ -157,7 +162,6 @@
             <button class="big-add-btn" onclick="startNewRecord()">➕ 新增頭痛紀錄</button>
         </div>
 
-        <!-- 新增/編輯表單 -->
         <div id="tab-record" class="tab-content">
             <h2 id="form-title">➕ 新增紀錄</h2>
             
@@ -286,12 +290,10 @@
             
             <input type="hidden" id="edit-id" value="">
             
-            <!-- 原本的儲存按鈕，現在做為被 observer 監視的底部錨點 -->
             <button class="save-btn" onclick="appLogic.saveRecord()" id="save-btn-text">💾 儲存紀錄</button>
             <button class="save-btn" style="background:#555; display:none;" id="cancel-edit-btn" onclick="appLogic.cancelEdit()">取消返回</button>
         </div>
 
-        <!-- 2. 歷史紀錄 -->
         <div id="tab-history" class="tab-content">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="margin: 0;">📖 歷史紀錄</h2>
@@ -300,7 +302,6 @@
             <div id="records-list"></div>
         </div>
 
-        <!-- 3. 圖表分析 -->
         <div id="tab-charts" class="tab-content">
             <h2>📊 圖表與分析</h2>
             
@@ -312,14 +313,13 @@
             <div id="charts-container"></div>
         </div>
 
-        <!-- 4. 系統設定 -->
         <div id="tab-settings" class="tab-content">
             <h2>⚙️ 系統設定</h2>
             
             <div class="section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <div class="section-title" style="margin:0; border:none; padding:0; color:#9a505e;">🩸 生理期追蹤</div>
-                    <button class="action-btn" id="period-edit-btn" style="background:#9a505e; margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
+                    <div class="section-title" style="margin:0; border:none; padding:0; color:var(--period-bg-color);">🩸 生理期追蹤</div>
+                    <button class="action-btn" id="period-edit-btn" style="background:var(--period-bg-color); margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
                 </div>
                 
                 <div class="calendar-header" style="font-size: 16px;">
@@ -338,7 +338,6 @@
         </div>
     </div>
 
-    <!-- 底部導覽列 -->
     <div class="nav">
         <button id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🏠 首頁</button>
         <button id="nav-history" onclick="switchTab('history')">📖 歷史</button>
@@ -347,7 +346,6 @@
     </div>
 </div>
 
-<!-- 變化 Modal -->
 <div class="modal-overlay" id="change-modal">
     <div class="modal-content">
         <h3 style="margin-bottom:15px; color: var(--primary-color);">➕ 紀錄轉移變化</h3>
@@ -402,7 +400,6 @@
     </div>
 </div>
 
-<!-- Firebase 核心邏輯 -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
@@ -425,6 +422,9 @@
     let globalRecords = [];
     let globalPeriods = []; 
     let isPeriodEditMode = false;
+    
+    // 全域狀態：用來記住剛編輯/新增的紀錄 ID，以便跳轉定位
+    window.lastEditedId = null;
     
     const LATEST_DEFAULT_PREFS = {
         contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
@@ -502,10 +502,10 @@
                 btn.innerHTML = '✅ 完成';
                 btn.style.background = 'var(--primary-color)';
                 hint.innerText = '編輯模式中：直接點擊方格以標記/取消生理期';
-                hint.style.color = '#9a505e';
+                hint.style.color = 'var(--period-bg-color)';
             } else {
                 btn.innerHTML = '✏️ 編輯';
-                btn.style.background = '#9a505e';
+                btn.style.background = 'var(--period-bg-color)';
                 hint.innerText = '點擊上方「編輯」解鎖，直接點擊方格紀錄';
                 hint.style.color = '#aaa';
                 syncToCloud(); 
@@ -579,9 +579,12 @@
                 if(idx > -1) { 
                     globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
                 }
+                window.lastEditedId = id; // 記住修改的 ID
                 window.showToast("編輯已儲存！");
             } else {
-                globalRecords.push({ id: Date.now(), time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+                var newId = Date.now();
+                globalRecords.push({ id: newId, time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+                window.lastEditedId = newId; // 記住新增的 ID
                 window.showToast("紀錄已儲存！");
             }
             globalRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -626,6 +629,8 @@
                 if(editIndex !== '') globalRecords[idx].changes[parseInt(editIndex)] = changeData;
                 else globalRecords[idx].changes.push(changeData);
                 globalRecords[idx].changes.sort((a,b) => new Date(a.time) - new Date(b.time));
+                
+                window.lastEditedId = id; // 記住修改過子紀錄的主卡片 ID
                 syncToCloud();
                 window.showToast("變化紀錄已儲存！");
             }
@@ -644,6 +649,7 @@
                 var idx = globalRecords.findIndex(r => r.id == id);
                 if(idx > -1) {
                     globalRecords[idx].changes.splice(cIndex, 1);
+                    window.lastEditedId = id; // 記住刪除變化的母卡片以便定位
                     syncToCloud();
                     window.switchTab('history');
                 }
@@ -676,9 +682,9 @@
         if (window.IntersectionObserver && inlineBtn) {
             var obs = new IntersectionObserver(function(entries) {
                 if(entries[0].isIntersecting) {
-                    fab.classList.add('hidden'); // 當滑到最下面，隱藏懸浮按鈕
+                    fab.classList.add('hidden');
                 } else {
-                    fab.classList.remove('hidden'); // 離開底部，顯示懸浮按鈕
+                    fab.classList.remove('hidden');
                 }
             }, { threshold: 0.1 });
             obs.observe(inlineBtn);
@@ -827,7 +833,10 @@
         if(tab === 'record') { fab.style.display = 'flex'; } 
         else { fab.style.display = 'none'; }
         
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        // 智慧判斷：如果不是要去歷史頁，或沒有帶剛剛編輯的 ID，才強制跳到最上方
+        if (tab !== 'history' || !window.lastEditedId) {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }
         
         if(tab === 'dashboard') { window.updateDashboard(); window.renderCalendar(); }
         if(tab === 'history') window.renderHistory();
@@ -873,7 +882,9 @@
                 changesHtml += '</div>';
             }
 
-            html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + (parseInt(r.pain.charAt(0)) || 1) + '分</div>';
+            // 在主卡片加上獨立 id 供定位使用
+            html += '<div class="record-card" id="record-card-' + r.id + '">';
+            html += '<div class="record-time">' + dateStr + ' | ' + (parseInt(r.pain.charAt(0)) || 1) + '分</div>';
             html += '<div class="record-detail"><strong>持續時間：</strong>' + (r.duration || '未確認') + '</div>';
             if(r.sleep && r.sleep !== '未填寫') html += '<div class="record-detail"><strong>前天睡眠：</strong>' + r.sleep + '</div>';
             html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
@@ -890,7 +901,20 @@
             html += '<button class="action-btn" style="background:var(--danger-color);" onclick="window.appLogic.deleteRecord(' + r.id + ')">🗑️ 刪除整筆</button>';
             html += '</div></div>';
         });
+        
         listDiv.innerHTML = html;
+
+        // 如果帶有剛編輯的 ID，執行滾動定位與發光動畫
+        if (window.lastEditedId) {
+            setTimeout(() => {
+                var targetCard = document.getElementById('record-card-' + window.lastEditedId);
+                if (targetCard) {
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetCard.classList.add('highlight-card');
+                }
+                window.lastEditedId = null; // 動畫執行完後清除，避免切換分頁又亮一次
+            }, 100);
+        }
     };
 
     window.changeMonth = function(offset) {
