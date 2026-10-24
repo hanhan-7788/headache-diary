@@ -12,7 +12,7 @@
         --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; 
         --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; 
         --timeline-color: #4f8bc988; 
-        --period-color: #6c404f; /* 調暗的生理期顏色 */
+        --period-color: #6c404f;
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-bottom: 80px; }
     * { box-sizing: border-box; }
@@ -61,7 +61,6 @@
     .cal-day-name { font-weight: bold; color: #888; margin-bottom: 5px; }
     .cal-cell { height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-color); border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; position: relative; transition: 0.2s; }
     
-    /* 今天日期標示 (取消粗體) */
     .today-highlight { background-color: #666; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
     
     .period-border { border: 2px solid var(--period-color) !important; }
@@ -72,7 +71,6 @@
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 4px; }
     .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
     
-    /* 痛覺漸層色碼 (1分黃 -> 5分紫) */
     .pain-1 { background-color: #fbc02d; }
     .pain-2 { background-color: #ff9800; }
     .pain-3 { background-color: #f57c00; }
@@ -144,7 +142,6 @@
                 <input type="datetime-local" id="record-time" onclick="try{this.showPicker();}catch(e){}">
             </div>
             
-            <!-- 新增情境區塊 -->
             <div class="section">
                 <div class="section-title">發作情境與狀態 (可多選)</div>
                 <div class="btn-group" id="dynamic-contexts"></div>
@@ -189,7 +186,7 @@
                         </div>
                     </div>
                     <div style="display: flex; justify-content: center; margin-top: 10px;">
-                        <label style="width: 100%; max-width: 250px;"><input type="checkbox" value="深部/腦內" class="loc-check"><div class="btn-check" style="background:#2a2a2a; border-color:#555;">深部/腦內</div></label>
+                        <label style="width: 100%; max-width: 250px;"><input type="checkbox" value="深部/腦內" class="loc-check"><div class="btn-check">深部/腦內</div></label>
                     </div>
                 </div>
             </div>
@@ -257,7 +254,7 @@
             
             <div class="section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <div class="section-title" style="margin:0; border:none; padding:0; color:var(--period-color);">🩸 生理期追蹤</div>
+                    <div class="section-title" style="margin:0; border:none; padding:0; color:var(--danger-color);">🩸 生理期追蹤</div>
                     <button class="action-btn" id="period-edit-btn" style="background:var(--danger-color); margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
                 </div>
                 
@@ -398,7 +395,6 @@
                 globalRecords = data.records || [];
                 if(data.prefs) {
                     globalPrefs = data.prefs;
-                    // 自動防呆修補舊資料庫缺乏的新屬性
                     if(!globalPrefs.contexts) globalPrefs.contexts = [...LATEST_DEFAULT_PREFS.contexts];
                     if(!globalPrefs.symptoms) globalPrefs.symptoms = [...LATEST_DEFAULT_PREFS.symptoms];
                 }
@@ -711,6 +707,8 @@
         if(tabEl) tabEl.classList.add('active');
         if(navEl) navEl.classList.add('active'); 
         
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        
         if(tab === 'dashboard') { window.updateDashboard(); window.renderCalendar(); }
         if(tab === 'history') window.renderHistory();
         if(tab === 'charts') window.renderCharts();
@@ -740,18 +738,19 @@
                     changesHtml += '<div class="timeline-item"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">';
                     changesHtml += '<div style="font-size:14px; font-weight:bold; color:var(--primary-color);">🕒 第 ' + (cIdx+1) + ' 次變化 (' + cTime + ')</div>';
                     changesHtml += '<div><span style="cursor:pointer; margin-right:10px; font-size:16px;" onclick="openChangeModal(' + r.id + ', ' + cIdx + ')">✏️</span><span style="cursor:pointer; font-size:16px;" onclick="window.appLogic.deleteChange(' + r.id + ', ' + cIdx + ')">🗑️</span></div></div>';
-                    changesHtml += '<div><strong>痛覺：</strong>' + c.pain.split(':')[0] + '分</div>';
+                    changesHtml += '<div><strong>痛覺：</strong>' + c.pain.split(':')[0] + '</div>';
                     if(c.locs) changesHtml += '<div><strong>部位：</strong>' + c.locs + '</div>';
                     if(c.contexts) changesHtml += '<div><strong>情境狀態：</strong>' + c.contexts + '</div>';
                     if(c.triggers) changesHtml += '<div><strong>潛在誘因：</strong>' + c.triggers + '</div>';
                     if(c.symptoms) changesHtml += '<div><strong>伴隨症狀：</strong>' + c.symptoms + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
-                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div></div>';
+                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div>';
+                    changesHtml += '</div>'; // 正確關閉 timeline-item
                 });
                 changesHtml += '</div>';
             }
 
-            html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '分</div>';
+            html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '</div>';
             html += '<div class="record-detail"><strong>持續時間：</strong>' + (r.duration || '未確認') + '</div>';
             html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
             if(r.contexts) html += '<div class="record-detail"><strong>情境狀態：</strong>' + r.contexts + '</div>';
@@ -972,7 +971,7 @@
         records.forEach(r => {
             var track = (r.changes && r.changes.length > 0) ? r.changes.map((c, i) => `[變化${i+1}] ${c.time.split('T')[1]} 痛:${c.pain.split(':')[0]} 部位:${c.locs||'無'}`).join(' / ') : '無';
             var row = [
-                r.time.replace('T', ' '), r.pain, r.locs, r.contexts||'', r.triggers, r.symptoms||'', r.meds, r.effect, r.duration, 
+                r.time.replace('T', ' '), r.pain.split(':')[0], r.locs, r.contexts||'', r.triggers, r.symptoms||'', r.meds, r.effect, r.duration, 
                 (r.memo || '').replace(/,/g, "，").replace(/\n/g, " "), track
             ];
             csvContent += row.join(",") + "\n";
