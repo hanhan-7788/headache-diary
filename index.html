@@ -11,7 +11,8 @@
     :root { 
         --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; 
         --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; 
-        --timeline-color: #4f8bc988; --period-color: #f48fb1; 
+        --timeline-color: #4f8bc988; 
+        --period-color: #6c404f; /* 調暗的生理期顏色 */
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-bottom: 80px; }
     * { box-sizing: border-box; }
@@ -59,21 +60,24 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
     .cal-day-name { font-weight: bold; color: #888; margin-bottom: 5px; }
     .cal-cell { height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-color); border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; position: relative; transition: 0.2s; }
-    .today-highlight { background-color: #666; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 2px; }
+    
+    /* 今天日期標示 (取消粗體) */
+    .today-highlight { background-color: #666; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
     
     .period-border { border: 2px solid var(--period-color) !important; }
-    .period-filled { background: var(--period-color) !important; color: #000; border-color: var(--period-color) !important; font-weight: bold;}
+    .period-filled { background: var(--period-color) !important; color: #fff; border-color: var(--period-color) !important; font-weight: bold;}
     .editable-cell { cursor: pointer; }
     .editable-cell:hover { border-color: var(--period-color); }
 
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 4px; }
     .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
     
-    .pain-1 { background-color: #4caf50; }
-    .pain-2 { background-color: #ffb300; }
-    .pain-3 { background-color: #f4511e; }
-    .pain-4 { background-color: #d32f2f; }
-    .pain-5 { background-color: #9c27b0; }
+    /* 痛覺漸層色碼 (1分黃 -> 5分紫) */
+    .pain-1 { background-color: #fbc02d; }
+    .pain-2 { background-color: #ff9800; }
+    .pain-3 { background-color: #f57c00; }
+    .pain-4 { background-color: #e53935; }
+    .pain-5 { background-color: #8e24aa; }
     .pain-fill { background-color: var(--primary-color); }
 
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -139,6 +143,14 @@
                 <div class="section-title">發作時間 (點擊修改)</div>
                 <input type="datetime-local" id="record-time" onclick="try{this.showPicker();}catch(e){}">
             </div>
+            
+            <!-- 新增情境區塊 -->
+            <div class="section">
+                <div class="section-title">發作情境與狀態 (可多選)</div>
+                <div class="btn-group" id="dynamic-contexts"></div>
+                <input type="text" id="custom-context" placeholder="輸入新情境 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
+
             <div class="section">
                 <div class="section-title">痛覺評分</div>
                 <div class="pain-scale">
@@ -151,7 +163,6 @@
             </div>
             <div class="section">
                 <div class="section-title">頭痛部位 (可多選)</div>
-                <!-- 獨立分離的版塊 -->
                 <div id="loc-container">
                     <div style="display: flex; gap: 10px;">
                         <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: rgba(255,255,255,0.02);">
@@ -182,18 +193,7 @@
                     </div>
                 </div>
             </div>
-            <div class="section">
-                <div class="section-title">持續時間 (可事後補填)</div>
-                <div class="btn-group">
-                    <label><input type="radio" name="duration" value="1小時內"><div class="btn-check">1小時內</div></label>
-                    <label><input type="radio" name="duration" value="1~3小時"><div class="btn-check">1~3小時</div></label>
-                    <label><input type="radio" name="duration" value="半天"><div class="btn-check">半天</div></label>
-                    <label><input type="radio" name="duration" value="整天"><div class="btn-check">整天</div></label>
-                    <label><input type="radio" name="duration" value="超過一天"><div class="btn-check">超過一天</div></label>
-                </div>
-            </div>
             
-            <!-- 將誘因與症狀徹底拆分 -->
             <div class="section">
                 <div class="section-title">潛在誘因 (可多選)</div>
                 <div class="btn-group" id="dynamic-triggers"></div>
@@ -203,6 +203,17 @@
                 <div class="section-title">伴隨症狀 (可多選)</div>
                 <div class="btn-group" id="dynamic-symptoms"></div>
                 <input type="text" id="custom-symptom" placeholder="輸入新症狀 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
+
+            <div class="section">
+                <div class="section-title">持續時間 (可事後補填)</div>
+                <div class="btn-group">
+                    <label><input type="radio" name="duration" value="1小時內"><div class="btn-check">1小時內</div></label>
+                    <label><input type="radio" name="duration" value="1~3小時"><div class="btn-check">1~3小時</div></label>
+                    <label><input type="radio" name="duration" value="半天"><div class="btn-check">半天</div></label>
+                    <label><input type="radio" name="duration" value="整天"><div class="btn-check">整天</div></label>
+                    <label><input type="radio" name="duration" value="超過一天"><div class="btn-check">超過一天</div></label>
+                </div>
             </div>
 
             <div class="section">
@@ -285,6 +296,10 @@
         <div class="section-title">變化時間 (點擊修改)</div>
         <input type="datetime-local" id="change-time" onclick="try{this.showPicker();}catch(e){}" style="margin-bottom:15px;">
         
+        <div class="section-title">變化情境與狀態 (可多選)</div>
+        <div class="btn-group" id="modal-dynamic-contexts" style="margin-bottom:10px;"></div>
+        <input type="text" id="change-custom-context" placeholder="自訂新情境..." style="margin-bottom:15px;">
+
         <div class="section-title">變化後痛覺</div>
         <div class="pain-scale" style="margin-bottom:15px;">
             <label><input type="radio" name="change-pain" value="1分: 輕度，微微有感"><div class="btn-check">1分: 輕度，微微有感</div></label>
@@ -297,7 +312,6 @@
         <div class="section-title">轉移部位 (可多選)</div>
         <div style="margin-bottom:15px;" id="change-matrix-container"></div>
         
-        <!-- Modal 中同樣拆分誘因與症狀 -->
         <div class="section-title">新潛在誘因 (可多選)</div>
         <div class="btn-group" id="modal-dynamic-triggers" style="margin-bottom:10px;"></div>
         <input type="text" id="change-custom-trigger" placeholder="自訂新誘因..." style="margin-bottom:15px;">
@@ -347,8 +361,9 @@
     let globalPeriods = []; 
     let isPeriodEditMode = false;
     
-    // 預設標籤大補帖 (徹底分離誘因與症狀)
-    const LATEST_DEFAULT_PREFS = { 
+    // 預設標籤
+    const LATEST_DEFAULT_PREFS = {
+        contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
         triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期'],
         symptoms: ['噁心', '畏光', '怕吵', '搏動性疼痛', '持續性疼痛'],
         meds: ['普拿疼', '布洛芬(消炎)'] 
@@ -383,13 +398,13 @@
                 globalRecords = data.records || [];
                 if(data.prefs) {
                     globalPrefs = data.prefs;
-                    // 確保舊資料也有 symptoms 陣列
+                    // 自動防呆修補舊資料庫缺乏的新屬性
+                    if(!globalPrefs.contexts) globalPrefs.contexts = [...LATEST_DEFAULT_PREFS.contexts];
                     if(!globalPrefs.symptoms) globalPrefs.symptoms = [...LATEST_DEFAULT_PREFS.symptoms];
                 }
                 globalPeriods = data.periods || [];
             }
             
-            // 複製新的部位 UI 到 Modal
             var locHtml = document.querySelector('#loc-container').innerHTML;
             document.getElementById('change-matrix-container').innerHTML = locHtml;
             document.getElementById('change-matrix-container').querySelectorAll('.loc-check').forEach(el => el.className = 'modal-loc-check');
@@ -453,7 +468,8 @@
                 window.showToast("標籤選項已重置！");
             }
         },
-        savePrefs: (newT, newS, newM) => {
+        savePrefs: (newCtx, newT, newS, newM) => {
+            if(newCtx && !globalPrefs.contexts.includes(newCtx)) globalPrefs.contexts.push(newCtx);
             if(newT && !globalPrefs.triggers.includes(newT)) globalPrefs.triggers.push(newT);
             if(newS && !globalPrefs.symptoms.includes(newS)) globalPrefs.symptoms.push(newS);
             if(newM && !globalPrefs.meds.includes(newM)) globalPrefs.meds.push(newM);
@@ -470,28 +486,32 @@
             var effect = window.getRadioVal('#tab-record', 'effect');
             
             var locs = []; document.querySelectorAll('#tab-record .loc-check:checked').forEach(el => locs.push(el.value));
+            var contexts = []; document.querySelectorAll('#tab-record .context-check:checked').forEach(el => contexts.push(el.value));
             var triggers = []; document.querySelectorAll('#tab-record .trigger-check:checked').forEach(el => triggers.push(el.value));
             var symptoms = []; document.querySelectorAll('#tab-record .symptom-check:checked').forEach(el => symptoms.push(el.value));
             var meds = []; document.querySelectorAll('#tab-record .med-check:checked').forEach(el => meds.push(el.value));
             
+            var customCtx = document.getElementById('custom-context').value.trim();
             var customT = document.getElementById('custom-trigger').value.trim();
             var customS = document.getElementById('custom-symptom').value.trim();
             var customM = document.getElementById('custom-med').value.trim();
+            
+            if(customCtx) contexts.push(customCtx);
             if(customT) triggers.push(customT);
             if(customS) symptoms.push(customS);
             if(customM) meds.push(customM);
             var memo = document.getElementById('memo').value.trim();
             
-            if(customT || customS || customM) window.appLogic.savePrefs(customT, customS, customM);
+            if(customCtx || customT || customS || customM) window.appLogic.savePrefs(customCtx, customT, customS, customM);
 
             if(id) {
                 var idx = globalRecords.findIndex(r => r.id == id);
                 if(idx > -1) { 
-                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, locs: locs.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
+                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
                 }
                 window.showToast("編輯已儲存！");
             } else {
-                globalRecords.push({ id: Date.now(), time, pain, duration, locs: locs.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+                globalRecords.push({ id: Date.now(), time, pain, duration, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
                 window.showToast("紀錄已儲存！");
             }
             globalRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -508,25 +528,28 @@
             var effect = window.getRadioVal('#change-modal', 'change-effect');
             
             var locs = []; document.querySelectorAll('.modal-loc-check:checked').forEach(el => locs.push(el.value));
+            var contexts = []; document.querySelectorAll('.modal-context-check:checked').forEach(el => contexts.push(el.value));
             var triggers = []; document.querySelectorAll('.modal-trigger-check:checked').forEach(el => triggers.push(el.value));
             var symptoms = []; document.querySelectorAll('.modal-symptom-check:checked').forEach(el => symptoms.push(el.value));
             var meds = []; document.querySelectorAll('.modal-med-check:checked').forEach(el => meds.push(el.value));
             
+            var customCtx = document.getElementById('change-custom-context').value.trim();
             var customT = document.getElementById('change-custom-trigger').value.trim();
             var customS = document.getElementById('change-custom-symptom').value.trim();
             var customM = document.getElementById('change-custom-med').value.trim();
             
+            if(customCtx) contexts.push(customCtx);
             if(customT) triggers.push(customT);
             if(customS) symptoms.push(customS);
             if(customM) meds.push(customM);
             var memo = document.getElementById('change-memo').value.trim();
             
-            if(customT || customS || customM) window.appLogic.savePrefs(customT, customS, customM);
+            if(customCtx || customT || customS || customM) window.appLogic.savePrefs(customCtx, customT, customS, customM);
 
             var idx = globalRecords.findIndex(r => r.id == id);
             if(idx > -1) {
                 if(!globalRecords[idx].changes) globalRecords[idx].changes = [];
-                var changeData = { time, pain, locs: locs.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo };
+                var changeData = { time, pain, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo };
                 if(editIndex !== '') globalRecords[idx].changes[parseInt(editIndex)] = changeData;
                 else globalRecords[idx].changes.push(changeData);
                 globalRecords[idx].changes.sort((a,b) => new Date(a.time) - new Date(b.time));
@@ -590,12 +613,15 @@
     window.getRadioVal = function(scope, name) { var el = document.querySelector(scope + ' input[name="' + name + '"]:checked'); return el ? el.value : ''; };
 
     window.renderDynamicButtons = function() {
-        var p = window.appLogic ? window.appLogic.getPrefs() : {triggers:[], symptoms:[], meds:[]};
+        var p = window.appLogic ? window.appLogic.getPrefs() : {contexts:[], triggers:[], symptoms:[], meds:[]};
+        if(!p.contexts) p.contexts = [];
         
+        document.getElementById('dynamic-contexts').innerHTML = p.contexts.map(t => '<label><input type="checkbox" value="'+t+'" class="context-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('dynamic-triggers').innerHTML = p.triggers.map(t => '<label><input type="checkbox" value="'+t+'" class="trigger-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('dynamic-symptoms').innerHTML = p.symptoms.map(t => '<label><input type="checkbox" value="'+t+'" class="symptom-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('dynamic-meds').innerHTML = p.meds.map(m => '<label><input type="checkbox" value="'+m+'" class="med-check"><div class="btn-check">'+m+'</div></label>').join('');
         
+        document.getElementById('modal-dynamic-contexts').innerHTML = p.contexts.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-context-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-triggers').innerHTML = p.triggers.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-trigger-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-symptoms').innerHTML = p.symptoms.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-symptom-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-meds').innerHTML = p.meds.map(m => '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>').join('');
@@ -613,6 +639,7 @@
         document.getElementById('edit-id').value = record.id;
         document.getElementById('record-time').value = record.time;
         document.getElementById('memo').value = record.memo || '';
+        document.getElementById('custom-context').value = '';
         document.getElementById('custom-trigger').value = '';
         document.getElementById('custom-symptom').value = '';
         document.getElementById('custom-med').value = '';
@@ -623,6 +650,7 @@
         if(record.effect) { var e = document.querySelector('#tab-record input[name="effect"][value="' + record.effect + '"]'); if(e) e.checked = true; }
         
         if(record.locs) record.locs.split('、').forEach(v => { var cb = document.querySelector('#tab-record .loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.contexts) record.contexts.split('、').forEach(v => { var cb = document.querySelector('#tab-record .context-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.triggers) record.triggers.split('、').forEach(v => { var cb = document.querySelector('#tab-record .trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.symptoms) record.symptoms.split('、').forEach(v => { var cb = document.querySelector('#tab-record .symptom-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.meds) record.meds.split('、').forEach(v => { var cb = document.querySelector('#tab-record .med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
@@ -636,6 +664,7 @@
     window.openChangeModal = function(id, cIndex) {
         document.getElementById('change-parent-id').value = id;
         document.querySelectorAll('#change-modal input[type="radio"], #change-modal input[type="checkbox"]').forEach(el => el.checked = false);
+        document.getElementById('change-custom-context').value = '';
         document.getElementById('change-custom-trigger').value = '';
         document.getElementById('change-custom-symptom').value = '';
         document.getElementById('change-custom-med').value = '';
@@ -649,6 +678,7 @@
             if(change.pain) { var p = document.querySelector('#change-modal input[name="change-pain"][value="' + change.pain + '"]'); if(p) p.checked = true; }
             if(change.effect) { var e = document.querySelector('#change-modal input[name="change-effect"][value="' + change.effect + '"]'); if(e) e.checked = true; }
             if(change.locs) change.locs.split('、').forEach(v => { var cb = document.querySelector('.modal-loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.contexts) change.contexts.split('、').forEach(v => { var cb = document.querySelector('.modal-context-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.triggers) change.triggers.split('、').forEach(v => { var cb = document.querySelector('.modal-trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.symptoms) change.symptoms.split('、').forEach(v => { var cb = document.querySelector('.modal-symptom-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.meds) change.meds.split('、').forEach(v => { var cb = document.querySelector('.modal-med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
@@ -712,6 +742,7 @@
                     changesHtml += '<div><span style="cursor:pointer; margin-right:10px; font-size:16px;" onclick="openChangeModal(' + r.id + ', ' + cIdx + ')">✏️</span><span style="cursor:pointer; font-size:16px;" onclick="window.appLogic.deleteChange(' + r.id + ', ' + cIdx + ')">🗑️</span></div></div>';
                     changesHtml += '<div><strong>痛覺：</strong>' + c.pain.split(':')[0] + '分</div>';
                     if(c.locs) changesHtml += '<div><strong>部位：</strong>' + c.locs + '</div>';
+                    if(c.contexts) changesHtml += '<div><strong>情境狀態：</strong>' + c.contexts + '</div>';
                     if(c.triggers) changesHtml += '<div><strong>潛在誘因：</strong>' + c.triggers + '</div>';
                     if(c.symptoms) changesHtml += '<div><strong>伴隨症狀：</strong>' + c.symptoms + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
@@ -723,6 +754,7 @@
             html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '分</div>';
             html += '<div class="record-detail"><strong>持續時間：</strong>' + (r.duration || '未確認') + '</div>';
             html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
+            if(r.contexts) html += '<div class="record-detail"><strong>情境狀態：</strong>' + r.contexts + '</div>';
             html += '<div class="record-detail"><strong>潛在誘因：</strong>' + (r.triggers || '無') + '</div>';
             if(r.symptoms) html += '<div class="record-detail"><strong>伴隨症狀：</strong>' + r.symptoms + '</div>';
             html += '<div class="record-detail"><strong>用藥：</strong>' + (r.meds || '無') + (r.effect ? ' ('+r.effect+')' : '') + '</div>';
@@ -781,7 +813,7 @@
             var isToday = (dateStr === todayStr);
             
             var cellClass = 'cal-cell' + (isPeriod ? ' period-border' : '');
-            var dateNumHtml = isToday ? `<div class="today-highlight">${i}</div>` : `<div>${i}</div>`;
+            var dateNumHtml = isToday ? `<div class="today-highlight">${i}</div>` : `<div style="margin-bottom:2px;">${i}</div>`;
             
             var dotHtml = '';
             if(dayRecords[i]) {
@@ -824,7 +856,7 @@
             if(isEditMode) cellClass += ' editable-cell';
 
             var clickAttr = isEditMode ? `onclick="window.appLogic.togglePeriodDate('${dateStr}')"` : '';
-            var dateNumHtml = (isToday && !isPeriod) ? `<div class="today-highlight">${i}</div>` : `<div>${i}</div>`;
+            var dateNumHtml = (isToday && !isPeriod) ? `<div class="today-highlight">${i}</div>` : `<div style="margin-bottom:2px;">${i}</div>`;
             
             html += `<div class="${cellClass}" ${clickAttr}>${dateNumHtml}</div>`;
         }
@@ -850,6 +882,7 @@
 
         var painCounts = { '1':0, '2':0, '3':0, '4':0, '5':0 };
         var timeStats = {'早晨 (06-12)':0, '下午 (12-18)':0, '晚間 (18-24)':0, '深夜 (00-06)':0};
+        var contextCounts = {};
         var triggerCounts = {};
         var symptomCounts = {};
 
@@ -876,10 +909,12 @@
                 });
             }
 
-            // 誘因與症狀
+            // 情境、誘因、症狀
+            if(r.contexts) r.contexts.split('、').forEach(t => { if(t) contextCounts[t] = (contextCounts[t] || 0) + 1; });
             if(r.triggers) r.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
             if(r.symptoms) r.symptoms.split('、').forEach(t => { if(t) symptomCounts[t] = (symptomCounts[t] || 0) + 1; });
             if(r.changes) r.changes.forEach(c => {
+                if(c.contexts) c.contexts.split('、').forEach(t => { if(t) contextCounts[t] = (contextCounts[t] || 0) + 1; });
                 if(c.triggers) c.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
                 if(c.symptoms) c.symptoms.split('、').forEach(t => { if(t) symptomCounts[t] = (symptomCounts[t] || 0) + 1; });
             });
@@ -892,6 +927,10 @@
         var maxTimeStat = Math.max(...Object.values(timeStats), 0);
         var timeHtml = '';
         Object.keys(timeStats).forEach(k => { timeHtml += makeBarHtml(k, timeStats[k], maxTimeStat, 'pain-fill'); });
+
+        var sortedContexts = Object.entries(contextCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
+        var maxContextStat = sortedContexts.length > 0 ? sortedContexts[0][1] : 0;
+        var contextHtml = sortedContexts.length > 0 ? sortedContexts.map(t => makeBarHtml(t[0], t[1], maxContextStat, 'pain-fill')).join('') : '<div style="color:#aaa; font-size:14px;">尚無紀錄</div>';
 
         var sortedTriggers = Object.entries(triggerCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
         var maxTriggerStat = sortedTriggers.length > 0 ? sortedTriggers[0][1] : 0;
@@ -911,6 +950,10 @@
                 ${timeHtml}
             </div>
             <div class="section">
+                <div class="section-title">發作情境排行榜 (Top 5)</div>
+                ${contextHtml}
+            </div>
+            <div class="section">
                 <div class="section-title">潛在誘因排行榜 (Top 5)</div>
                 ${triggerHtml}
             </div>
@@ -924,12 +967,12 @@
     window.exportCSV = function() {
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         if(records.length === 0) return window.showToast("無資料可匯出");
-        var csvContent = "\uFEFF時間,痛覺評分,部位,潛在誘因,伴隨症狀,用藥,藥效,持續時間,備註,轉移軌跡\n";
+        var csvContent = "\uFEFF時間,痛覺評分,部位,發作情境,潛在誘因,伴隨症狀,用藥,藥效,持續時間,備註,轉移軌跡\n";
         
         records.forEach(r => {
             var track = (r.changes && r.changes.length > 0) ? r.changes.map((c, i) => `[變化${i+1}] ${c.time.split('T')[1]} 痛:${c.pain.split(':')[0]} 部位:${c.locs||'無'}`).join(' / ') : '無';
             var row = [
-                r.time.replace('T', ' '), r.pain, r.locs, r.triggers, r.symptoms||'', r.meds, r.effect, r.duration, 
+                r.time.replace('T', ' '), r.pain, r.locs, r.contexts||'', r.triggers, r.symptoms||'', r.meds, r.effect, r.duration, 
                 (r.memo || '').replace(/,/g, "，").replace(/\n/g, " "), track
             ];
             csvContent += row.join(",") + "\n";
