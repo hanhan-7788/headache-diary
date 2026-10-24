@@ -28,7 +28,7 @@
     .section { background: var(--surface-color); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
     .section-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;}
     
-    input[type="datetime-local"], input[type="text"], textarea { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; font-size: 16px; cursor: pointer;}
+    input[type="datetime-local"], input[type="text"], textarea, select { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; font-size: 16px; cursor: pointer;}
     textarea { resize: vertical; min-height: 80px; cursor: text;}
     input[type="text"] { cursor: text; }
     
@@ -55,7 +55,6 @@
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
     .modal-content { background: var(--surface-color); width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; margin-bottom: 30px;}
     
-    /* 月曆樣式 */
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 18px; font-weight: bold; }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
     .cal-day-name { font-weight: bold; color: #888; margin-bottom: 5px; }
@@ -137,17 +136,14 @@
         <!-- 新增/編輯表單 -->
         <div id="tab-record" class="tab-content">
             <h2 id="form-title">新增紀錄</h2>
+            
+            <!-- 發作時間 -->
             <div class="section">
                 <div class="section-title">發作時間 (點擊修改)</div>
                 <input type="datetime-local" id="record-time" onclick="try{this.showPicker();}catch(e){}">
             </div>
             
-            <div class="section">
-                <div class="section-title">發作情境與狀態 (可多選)</div>
-                <div class="btn-group" id="dynamic-contexts"></div>
-                <input type="text" id="custom-context" placeholder="輸入新情境 (存檔後自動記憶)" style="margin-top:10px;">
-            </div>
-
+            <!-- 痛覺評分 -->
             <div class="section">
                 <div class="section-title">痛覺評分</div>
                 <div class="pain-scale">
@@ -158,6 +154,8 @@
                     <label><input type="radio" name="pain" value="5分: 重度，藥物無效（無法入睡）"><div class="btn-check">5分: 重度，藥物無效（無法入睡）</div></label>
                 </div>
             </div>
+
+            <!-- 頭痛部位 -->
             <div class="section">
                 <div class="section-title">頭痛部位 (可多選)</div>
                 <div id="loc-container">
@@ -186,22 +184,12 @@
                         </div>
                     </div>
                     <div style="display: flex; justify-content: center; margin-top: 10px;">
-                        <label style="width: 100%; max-width: 250px;"><input type="checkbox" value="深部/腦內" class="loc-check"><div class="btn-check">深部/腦內</div></label>
+                        <label style="width: 100%; max-width: 250px;"><input type="checkbox" value="深部/腦內" class="loc-check"><div class="btn-check" style="background:#2a2a2a; border-color:#555;">深部/腦內</div></label>
                     </div>
                 </div>
             </div>
-            
-            <div class="section">
-                <div class="section-title">潛在誘因 (可多選)</div>
-                <div class="btn-group" id="dynamic-triggers"></div>
-                <input type="text" id="custom-trigger" placeholder="輸入新誘因 (存檔後自動記憶)" style="margin-top:10px;">
-            </div>
-            <div class="section">
-                <div class="section-title">伴隨症狀 (可多選)</div>
-                <div class="btn-group" id="dynamic-symptoms"></div>
-                <input type="text" id="custom-symptom" placeholder="輸入新症狀 (存檔後自動記憶)" style="margin-top:10px;">
-            </div>
 
+            <!-- 持續時間 (移至部位下方) -->
             <div class="section">
                 <div class="section-title">持續時間 (可事後補填)</div>
                 <div class="btn-group">
@@ -212,7 +200,47 @@
                     <label><input type="radio" name="duration" value="超過一天"><div class="btn-check">超過一天</div></label>
                 </div>
             </div>
+            
+            <!-- 潛在誘因 -->
+            <div class="section">
+                <div class="section-title">潛在誘因 (可多選)</div>
+                <div class="btn-group" id="dynamic-triggers"></div>
+                <input type="text" id="custom-trigger" placeholder="輸入新誘因 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
 
+            <!-- 伴隨症狀 -->
+            <div class="section">
+                <div class="section-title">伴隨症狀 (可多選)</div>
+                <div class="btn-group" id="dynamic-symptoms"></div>
+                <input type="text" id="custom-symptom" placeholder="輸入新症狀 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
+
+            <!-- 發作情境與狀態 (移至伴隨症狀下方) -->
+            <div class="section">
+                <div class="section-title">發作情境與狀態 (可多選)</div>
+                <div class="btn-group" id="dynamic-contexts"></div>
+                <input type="text" id="custom-context" placeholder="輸入新情境 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
+
+            <!-- 睡眠時長 (移至發作情境下方) -->
+            <div class="section">
+                <div class="section-title">前一天睡眠時長</div>
+                <select id="sleep-duration">
+                    <option value="">未填寫</option>
+                    <option value="3小時以下">3 小時以下</option>
+                    <option value="4小時">4 小時</option>
+                    <option value="5小時">5 小時</option>
+                    <option value="6小時">6 小時</option>
+                    <option value="7小時">7 小時</option>
+                    <option value="8小時" selected>8 小時 (預設)</option>
+                    <option value="9小時">9 小時</option>
+                    <option value="10小時">10 小時</option>
+                    <option value="11小時">11 小時</option>
+                    <option value="12小時以上">12 小時以上</option>
+                </select>
+            </div>
+
+            <!-- 用藥與效果 -->
             <div class="section">
                 <div class="section-title">用藥與效果</div>
                 <div class="btn-group" id="dynamic-meds"></div>
@@ -224,10 +252,13 @@
                     <label><input type="radio" name="effect" value="完全壓制"><div class="btn-check">完全壓制</div></label>
                 </div>
             </div>
+
+            <!-- 備註 -->
             <div class="section">
                 <div class="section-title">備註</div>
                 <textarea id="memo" placeholder="其他細節..."></textarea>
             </div>
+            
             <input type="hidden" id="edit-id" value="">
             <button class="save-btn" onclick="appLogic.saveRecord()" id="save-btn-text">儲存紀錄</button>
             <button class="save-btn" style="background:#555; display:none;" id="cancel-edit-btn" onclick="appLogic.cancelEdit()">取消返回</button>
@@ -293,10 +324,6 @@
         <div class="section-title">變化時間 (點擊修改)</div>
         <input type="datetime-local" id="change-time" onclick="try{this.showPicker();}catch(e){}" style="margin-bottom:15px;">
         
-        <div class="section-title">變化情境與狀態 (可多選)</div>
-        <div class="btn-group" id="modal-dynamic-contexts" style="margin-bottom:10px;"></div>
-        <input type="text" id="change-custom-context" placeholder="自訂新情境..." style="margin-bottom:15px;">
-
         <div class="section-title">變化後痛覺</div>
         <div class="pain-scale" style="margin-bottom:15px;">
             <label><input type="radio" name="change-pain" value="1分: 輕度，微微有感"><div class="btn-check">1分: 輕度，微微有感</div></label>
@@ -316,6 +343,10 @@
         <div class="section-title">新伴隨症狀 (可多選)</div>
         <div class="btn-group" id="modal-dynamic-symptoms" style="margin-bottom:10px;"></div>
         <input type="text" id="change-custom-symptom" placeholder="自訂新症狀..." style="margin-bottom:15px;">
+        
+        <div class="section-title">變化情境與狀態 (可多選)</div>
+        <div class="btn-group" id="modal-dynamic-contexts" style="margin-bottom:10px;"></div>
+        <input type="text" id="change-custom-context" placeholder="自訂新情境..." style="margin-bottom:15px;">
 
         <div class="section-title">服用新藥與效果</div>
         <div class="btn-group" id="modal-dynamic-meds" style="margin-bottom:10px;"></div>
@@ -358,11 +389,11 @@
     let globalPeriods = []; 
     let isPeriodEditMode = false;
     
-    // 預設標籤
+    // 更新預設標籤大補帖 (加入發熱)
     const LATEST_DEFAULT_PREFS = {
         contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
         triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期'],
-        symptoms: ['噁心', '畏光', '怕吵', '搏動性疼痛', '持續性疼痛'],
+        symptoms: ['噁心', '發熱', '畏光', '怕吵', '搏動性疼痛', '持續性疼痛'],
         meds: ['普拿疼', '布洛芬(消炎)'] 
     };
     let globalPrefs = JSON.parse(JSON.stringify(LATEST_DEFAULT_PREFS));
@@ -480,6 +511,7 @@
             var pain = window.getRadioVal('#tab-record', 'pain') || '未填寫';
             var duration = window.getRadioVal('#tab-record', 'duration') || '未確認';
             var effect = window.getRadioVal('#tab-record', 'effect');
+            var sleep = document.getElementById('sleep-duration').value;
             
             var locs = []; document.querySelectorAll('#tab-record .loc-check:checked').forEach(el => locs.push(el.value));
             var contexts = []; document.querySelectorAll('#tab-record .context-check:checked').forEach(el => contexts.push(el.value));
@@ -503,11 +535,11 @@
             if(id) {
                 var idx = globalRecords.findIndex(r => r.id == id);
                 if(idx > -1) { 
-                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
+                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
                 }
                 window.showToast("編輯已儲存！");
             } else {
-                globalRecords.push({ id: Date.now(), time, pain, duration, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+                globalRecords.push({ id: Date.now(), time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
                 window.showToast("紀錄已儲存！");
             }
             globalRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -577,6 +609,7 @@
             document.getElementById('form-title').innerText = "新增紀錄";
             document.getElementById('save-btn-text').innerText = "儲存紀錄";
             document.getElementById('cancel-edit-btn').style.display = 'none';
+            document.getElementById('sleep-duration').value = '8小時'; // 還原預設
             document.querySelectorAll('#tab-record input[type="checkbox"], #tab-record input[type="radio"]').forEach(el => el.checked = false);
             document.querySelectorAll('#tab-record input[type="text"], #tab-record textarea').forEach(el => el.value = '');
             window.switchTab('history');
@@ -639,6 +672,13 @@
         document.getElementById('custom-trigger').value = '';
         document.getElementById('custom-symptom').value = '';
         document.getElementById('custom-med').value = '';
+        
+        if (record.sleep !== undefined) {
+             document.getElementById('sleep-duration').value = record.sleep;
+        } else {
+             document.getElementById('sleep-duration').value = '8小時';
+        }
+
         document.querySelectorAll('#tab-record input[type="radio"], #tab-record input[type="checkbox"]').forEach(el => el.checked = false);
         
         if(record.pain) { var p = document.querySelector('#tab-record input[name="pain"][value="' + record.pain + '"]'); if(p) p.checked = true; }
@@ -744,14 +784,14 @@
                     if(c.triggers) changesHtml += '<div><strong>潛在誘因：</strong>' + c.triggers + '</div>';
                     if(c.symptoms) changesHtml += '<div><strong>伴隨症狀：</strong>' + c.symptoms + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
-                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div>';
-                    changesHtml += '</div>'; // 正確關閉 timeline-item
+                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div></div>';
                 });
                 changesHtml += '</div>';
             }
 
             html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + r.pain.split(':')[0] + '</div>';
             html += '<div class="record-detail"><strong>持續時間：</strong>' + (r.duration || '未確認') + '</div>';
+            if(r.sleep && r.sleep !== '未填寫') html += '<div class="record-detail"><strong>前天睡眠：</strong>' + r.sleep + '</div>';
             html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
             if(r.contexts) html += '<div class="record-detail"><strong>情境狀態：</strong>' + r.contexts + '</div>';
             html += '<div class="record-detail"><strong>潛在誘因：</strong>' + (r.triggers || '無') + '</div>';
@@ -886,12 +926,10 @@
         var symptomCounts = {};
 
         records.forEach(r => {
-            // 最高痛覺
             var maxPain = parseInt(r.pain.charAt(0)) || 0;
             if(r.changes) r.changes.forEach(c => { var cp = parseInt(c.pain.charAt(0)) || 0; if(cp > maxPain) maxPain = cp; });
             if(maxPain >= 1 && maxPain <= 5) painCounts[maxPain]++;
 
-            // 發作時間分佈 (包含主發作與轉移)
             var h = new Date(r.time).getHours();
             if(h >= 6 && h < 12) timeStats['早晨 (06-12)']++;
             else if(h >= 12 && h < 18) timeStats['下午 (12-18)']++;
@@ -908,7 +946,6 @@
                 });
             }
 
-            // 情境、誘因、症狀
             if(r.contexts) r.contexts.split('、').forEach(t => { if(t) contextCounts[t] = (contextCounts[t] || 0) + 1; });
             if(r.triggers) r.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
             if(r.symptoms) r.symptoms.split('、').forEach(t => { if(t) symptomCounts[t] = (symptomCounts[t] || 0) + 1; });
@@ -966,12 +1003,12 @@
     window.exportCSV = function() {
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         if(records.length === 0) return window.showToast("無資料可匯出");
-        var csvContent = "\uFEFF時間,痛覺評分,部位,發作情境,潛在誘因,伴隨症狀,用藥,藥效,持續時間,備註,轉移軌跡\n";
+        var csvContent = "\uFEFF時間,痛覺評分,部位,持續時間,前天睡眠,潛在誘因,伴隨症狀,發作情境,用藥,藥效,備註,轉移軌跡\n";
         
         records.forEach(r => {
             var track = (r.changes && r.changes.length > 0) ? r.changes.map((c, i) => `[變化${i+1}] ${c.time.split('T')[1]} 痛:${c.pain.split(':')[0]} 部位:${c.locs||'無'}`).join(' / ') : '無';
             var row = [
-                r.time.replace('T', ' '), r.pain.split(':')[0], r.locs, r.contexts||'', r.triggers, r.symptoms||'', r.meds, r.effect, r.duration, 
+                r.time.replace('T', ' '), r.pain.split(':')[0], r.locs, r.duration||'', r.sleep||'', r.triggers, r.symptoms||'', r.contexts||'', r.meds, r.effect, 
                 (r.memo || '').replace(/,/g, "，").replace(/\n/g, " "), track
             ];
             csvContent += row.join(",") + "\n";
