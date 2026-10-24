@@ -12,7 +12,8 @@
         --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; 
         --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; 
         --timeline-color: #4f8bc988; 
-        --period-color: #6c404f;
+        --period-color: #6c404f; /* 首頁月曆暗紅外框 */
+        --period-bg-color: #9a505e; /* 設定頁月曆粉紅背景與按鈕 */
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-bottom: 80px; }
     * { box-sizing: border-box; }
@@ -49,7 +50,7 @@
     .record-time { font-weight: bold; color: var(--primary-color); font-size: 18px; margin-bottom: 5px;}
     .record-detail { font-size: 14px; margin-bottom: 4px; color: #ddd;}
     .timeline { margin-top: 10px; padding-left: 15px; border-left: 2px dashed var(--timeline-color); }
-    .timeline-item { margin-bottom: 10px; position: relative; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);}
+    .timeline-item { margin-bottom: 10px; position: relative; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; color: #ddd; }
     .timeline-item::before { content: ''; position: absolute; left: -21px; top: 12px; width: 10px; height: 10px; background: var(--primary-color); border-radius: 50%; }
     
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
@@ -63,9 +64,9 @@
     .today-highlight { background-color: #666; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
     
     .period-border { border: 2px solid var(--period-color) !important; }
-    .period-filled { background: var(--period-color) !important; color: #fff; border-color: var(--period-color) !important; font-weight: bold;}
+    .period-filled { background: var(--period-bg-color) !important; color: #fff; border-color: var(--period-bg-color) !important; font-weight: bold;}
     .editable-cell { cursor: pointer; }
-    .editable-cell:hover { border-color: var(--period-color); }
+    .editable-cell:hover { border-color: var(--period-bg-color); }
 
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 4px; }
     .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -126,11 +127,6 @@
             </div>
 
             <button class="big-add-btn" onclick="startNewRecord()">➕ 新增頭痛紀錄</button>
-
-            <div class="section">
-                <div class="section-title">數據摘要</div>
-                <div id="dash-summary" style="font-size: 15px; color:#ccc;"></div>
-            </div>
         </div>
 
         <!-- 新增/編輯表單 -->
@@ -277,6 +273,12 @@
         <!-- 3. 圖表分析 -->
         <div id="tab-charts" class="tab-content">
             <h2>圖表與分析</h2>
+            
+            <div class="section">
+                <div class="section-title">📊 數據摘要</div>
+                <div id="dash-summary" style="font-size: 15px; color:#ccc;"></div>
+            </div>
+
             <div id="charts-container"></div>
         </div>
 
@@ -286,8 +288,8 @@
             
             <div class="section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <div class="section-title" style="margin:0; border:none; padding:0; color:var(--danger-color);">🩸 生理期追蹤</div>
-                    <button class="action-btn" id="period-edit-btn" style="background:var(--danger-color); margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
+                    <div class="section-title" style="margin:0; border:none; padding:0; color:var(--period-bg-color);">🩸 生理期追蹤</div>
+                    <button class="action-btn" id="period-edit-btn" style="background:var(--period-bg-color); margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
                 </div>
                 
                 <div class="calendar-header" style="font-size: 16px;">
@@ -394,7 +396,6 @@
     let globalPeriods = []; 
     let isPeriodEditMode = false;
     
-    // 預設標籤設定 (已加入間歇性疼痛並更新藥物)
     const LATEST_DEFAULT_PREFS = {
         contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
         triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期'],
@@ -471,10 +472,10 @@
                 btn.innerHTML = '✅ 完成';
                 btn.style.background = 'var(--primary-color)';
                 hint.innerText = '編輯模式中：直接點擊方格以標記/取消生理期';
-                hint.style.color = 'var(--period-color)';
+                hint.style.color = 'var(--period-bg-color)';
             } else {
                 btn.innerHTML = '✏️ 編輯';
-                btn.style.background = 'var(--danger-color)';
+                btn.style.background = 'var(--period-bg-color)';
                 hint.innerText = '點擊上方「編輯」解鎖，直接點擊方格紀錄';
                 hint.style.color = '#aaa';
                 syncToCloud(); 
@@ -778,7 +779,7 @@
         
         if(tab === 'dashboard') { window.updateDashboard(); window.renderCalendar(); }
         if(tab === 'history') window.renderHistory();
-        if(tab === 'charts') window.renderCharts();
+        if(tab === 'charts') { window.updateDashboard(); window.renderCharts(); }
         if(tab === 'settings') window.renderPeriodCalendar(isPeriodEditMode);
     };
 
@@ -786,7 +787,8 @@
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         var now = new Date();
         var thisMonthCount = records.filter(r => { var d = new Date(r.time); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }).length;
-        document.getElementById('dash-summary').innerHTML = '這個月已發作：<strong>' + thisMonthCount + '</strong> 次<br>總計發作紀錄：<strong>' + records.length + '</strong> 筆';
+        var sumEl = document.getElementById('dash-summary');
+        if(sumEl) sumEl.innerHTML = '這個月已發作：<strong>' + thisMonthCount + '</strong> 次<br>總計發作紀錄：<strong>' + records.length + '</strong> 筆';
     };
 
     window.renderHistory = function() {
@@ -813,7 +815,7 @@
                     if(c.painTypes) changesHtml += '<div><strong>疼痛方式：</strong>' + c.painTypes + '</div>';
                     if(c.symptoms) changesHtml += '<div><strong>伴隨症狀：</strong>' + c.symptoms + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
-                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div>';
+                    if(c.memo) changesHtml += '<div><strong>備註：</strong>' + c.memo + '</div>';
                     changesHtml += '</div>'; 
                 });
                 changesHtml += '</div>';
@@ -1016,27 +1018,27 @@
 
         container.innerHTML = `
             <div class="section">
-                <div class="section-title">單次發作最高痛覺分佈</div>
+                <div class="section-title">🔥 單次發作最高痛覺分佈</div>
                 ${painHtml}
             </div>
             <div class="section">
-                <div class="section-title">發作時間分佈</div>
+                <div class="section-title">⏰ 發作時間分佈</div>
                 ${timeHtml}
             </div>
             <div class="section">
-                <div class="section-title">發作情境排行榜 (Top 5)</div>
+                <div class="section-title">🏠 發作情境排行榜 (Top 5)</div>
                 ${contextHtml}
             </div>
             <div class="section">
-                <div class="section-title">潛在誘因排行榜 (Top 5)</div>
+                <div class="section-title">⚡ 潛在誘因排行榜 (Top 5)</div>
                 ${triggerHtml}
             </div>
             <div class="section">
-                <div class="section-title">疼痛方式排行榜 (Top 5)</div>
+                <div class="section-title">🤕 疼痛方式排行榜 (Top 5)</div>
                 ${painTypeHtml}
             </div>
             <div class="section">
-                <div class="section-title">伴隨症狀排行榜 (Top 5)</div>
+                <div class="section-title">🤢 伴隨症狀排行榜 (Top 5)</div>
                 ${symptomHtml}
             </div>
         `;
