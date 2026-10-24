@@ -204,6 +204,12 @@
             </div>
 
             <div class="section">
+                <div class="section-title">疼痛方式 (可多選)</div>
+                <div class="btn-group" id="dynamic-painTypes"></div>
+                <input type="text" id="custom-painType" placeholder="輸入新疼痛方式 (存檔後自動記憶)" style="margin-top:10px;">
+            </div>
+
+            <div class="section">
                 <div class="section-title">伴隨症狀 (可多選)</div>
                 <div class="btn-group" id="dynamic-symptoms"></div>
                 <input type="text" id="custom-symptom" placeholder="輸入新症狀 (存檔後自動記憶)" style="margin-top:10px;">
@@ -217,19 +223,24 @@
 
             <div class="section">
                 <div class="section-title">前一天睡眠時長</div>
-                <select id="sleep-duration">
-                    <option value="">未填寫</option>
-                    <option value="3小時以下">3 小時以下</option>
-                    <option value="4小時">4 小時</option>
-                    <option value="5小時">5 小時</option>
-                    <option value="6小時">6 小時</option>
-                    <option value="7小時">7 小時</option>
-                    <option value="8小時" selected>8 小時 (預設)</option>
-                    <option value="9小時">9 小時</option>
-                    <option value="10小時">10 小時</option>
-                    <option value="11小時">11 小時</option>
-                    <option value="12小時以上">12 小時以上</option>
-                </select>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="flex-shrink: 0; margin: 0; cursor: pointer;">
+                        <input type="checkbox" id="sleep-toggle" onchange="document.getElementById('sleep-duration').style.display = this.checked ? 'block' : 'none';">
+                        <div class="btn-check" style="margin: 0; padding: 12px 20px;">有紀錄</div>
+                    </label>
+                    <select id="sleep-duration" style="display:none; flex-grow: 1; margin: 0;">
+                        <option value="3小時以下">3 小時以下</option>
+                        <option value="4小時">4 小時</option>
+                        <option value="5小時">5 小時</option>
+                        <option value="6小時">6 小時</option>
+                        <option value="7小時">7 小時</option>
+                        <option value="8小時" selected>8 小時 (預設)</option>
+                        <option value="9小時">9 小時</option>
+                        <option value="10小時">10 小時</option>
+                        <option value="11小時">11 小時</option>
+                        <option value="12小時以上">12 小時以上</option>
+                    </select>
+                </div>
             </div>
 
             <div class="section">
@@ -330,6 +341,10 @@
         <div class="btn-group" id="modal-dynamic-triggers" style="margin-bottom:10px;"></div>
         <input type="text" id="change-custom-trigger" placeholder="自訂新誘因..." style="margin-bottom:15px;">
 
+        <div class="section-title">新疼痛方式 (可多選)</div>
+        <div class="btn-group" id="modal-dynamic-painTypes" style="margin-bottom:10px;"></div>
+        <input type="text" id="change-custom-painType" placeholder="自訂新疼痛方式..." style="margin-bottom:15px;">
+
         <div class="section-title">新伴隨症狀 (可多選)</div>
         <div class="btn-group" id="modal-dynamic-symptoms" style="margin-bottom:10px;"></div>
         <input type="text" id="change-custom-symptom" placeholder="自訂新症狀..." style="margin-bottom:15px;">
@@ -379,11 +394,13 @@
     let globalPeriods = []; 
     let isPeriodEditMode = false;
     
+    // 更新預設標籤大補帖 (拆分疼痛方式、更新藥物)
     const LATEST_DEFAULT_PREFS = {
         contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
         triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期'],
-        symptoms: ['噁心', '發熱', '畏光', '怕吵', '間歇性疼痛', '搏動性疼痛', '持續性疼痛'],
-        meds: ['普拿疼', '布洛芬(消炎)'] 
+        painTypes: ['間歇性疼痛', '搏動性疼痛', '持續性疼痛'],
+        symptoms: ['噁心', '發熱', '畏光', '怕吵'],
+        meds: ['普拿疼', '布洛芬', 'EVE'] 
     };
     let globalPrefs = JSON.parse(JSON.stringify(LATEST_DEFAULT_PREFS));
 
@@ -415,7 +432,9 @@
                 globalRecords = data.records || [];
                 if(data.prefs) {
                     globalPrefs = data.prefs;
+                    // 自動防呆修補舊資料庫缺乏的新屬性
                     if(!globalPrefs.contexts) globalPrefs.contexts = [...LATEST_DEFAULT_PREFS.contexts];
+                    if(!globalPrefs.painTypes) globalPrefs.painTypes = [...LATEST_DEFAULT_PREFS.painTypes];
                     if(!globalPrefs.symptoms) globalPrefs.symptoms = [...LATEST_DEFAULT_PREFS.symptoms];
                 }
                 globalPeriods = data.periods || [];
@@ -484,9 +503,10 @@
                 window.showToast("標籤選項已重置！");
             }
         },
-        savePrefs: (newCtx, newT, newS, newM) => {
+        savePrefs: (newCtx, newT, newP, newS, newM) => {
             if(newCtx && !globalPrefs.contexts.includes(newCtx)) globalPrefs.contexts.push(newCtx);
             if(newT && !globalPrefs.triggers.includes(newT)) globalPrefs.triggers.push(newT);
+            if(newP && !globalPrefs.painTypes.includes(newP)) globalPrefs.painTypes.push(newP);
             if(newS && !globalPrefs.symptoms.includes(newS)) globalPrefs.symptoms.push(newS);
             if(newM && !globalPrefs.meds.includes(newM)) globalPrefs.meds.push(newM);
             syncToCloud();
@@ -500,35 +520,38 @@
             var pain = window.getRadioVal('#tab-record', 'pain') || '未填寫';
             var duration = window.getRadioVal('#tab-record', 'duration') || '未確認';
             var effect = window.getRadioVal('#tab-record', 'effect');
-            var sleep = document.getElementById('sleep-duration').value;
+            var sleep = document.getElementById('sleep-toggle').checked ? document.getElementById('sleep-duration').value : '未填寫';
             
             var locs = []; document.querySelectorAll('#tab-record .loc-check:checked').forEach(el => locs.push(el.value));
             var contexts = []; document.querySelectorAll('#tab-record .context-check:checked').forEach(el => contexts.push(el.value));
             var triggers = []; document.querySelectorAll('#tab-record .trigger-check:checked').forEach(el => triggers.push(el.value));
+            var painTypes = []; document.querySelectorAll('#tab-record .painType-check:checked').forEach(el => painTypes.push(el.value));
             var symptoms = []; document.querySelectorAll('#tab-record .symptom-check:checked').forEach(el => symptoms.push(el.value));
             var meds = []; document.querySelectorAll('#tab-record .med-check:checked').forEach(el => meds.push(el.value));
             
             var customCtx = document.getElementById('custom-context').value.trim();
             var customT = document.getElementById('custom-trigger').value.trim();
+            var customP = document.getElementById('custom-painType').value.trim();
             var customS = document.getElementById('custom-symptom').value.trim();
             var customM = document.getElementById('custom-med').value.trim();
             
             if(customCtx) contexts.push(customCtx);
             if(customT) triggers.push(customT);
+            if(customP) painTypes.push(customP);
             if(customS) symptoms.push(customS);
             if(customM) meds.push(customM);
             var memo = document.getElementById('memo').value.trim();
             
-            if(customCtx || customT || customS || customM) window.appLogic.savePrefs(customCtx, customT, customS, customM);
+            if(customCtx || customT || customP || customS || customM) window.appLogic.savePrefs(customCtx, customT, customP, customS, customM);
 
             if(id) {
                 var idx = globalRecords.findIndex(r => r.id == id);
                 if(idx > -1) { 
-                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
+                    globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
                 }
                 window.showToast("編輯已儲存！");
             } else {
-                globalRecords.push({ id: Date.now(), time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+                globalRecords.push({ id: Date.now(), time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
                 window.showToast("紀錄已儲存！");
             }
             globalRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -547,26 +570,29 @@
             var locs = []; document.querySelectorAll('.modal-loc-check:checked').forEach(el => locs.push(el.value));
             var contexts = []; document.querySelectorAll('.modal-context-check:checked').forEach(el => contexts.push(el.value));
             var triggers = []; document.querySelectorAll('.modal-trigger-check:checked').forEach(el => triggers.push(el.value));
+            var painTypes = []; document.querySelectorAll('.modal-painType-check:checked').forEach(el => painTypes.push(el.value));
             var symptoms = []; document.querySelectorAll('.modal-symptom-check:checked').forEach(el => symptoms.push(el.value));
             var meds = []; document.querySelectorAll('.modal-med-check:checked').forEach(el => meds.push(el.value));
             
             var customCtx = document.getElementById('change-custom-context').value.trim();
             var customT = document.getElementById('change-custom-trigger').value.trim();
+            var customP = document.getElementById('change-custom-painType').value.trim();
             var customS = document.getElementById('change-custom-symptom').value.trim();
             var customM = document.getElementById('change-custom-med').value.trim();
             
             if(customCtx) contexts.push(customCtx);
             if(customT) triggers.push(customT);
+            if(customP) painTypes.push(customP);
             if(customS) symptoms.push(customS);
             if(customM) meds.push(customM);
             var memo = document.getElementById('change-memo').value.trim();
             
-            if(customCtx || customT || customS || customM) window.appLogic.savePrefs(customCtx, customT, customS, customM);
+            if(customCtx || customT || customP || customS || customM) window.appLogic.savePrefs(customCtx, customT, customP, customS, customM);
 
             var idx = globalRecords.findIndex(r => r.id == id);
             if(idx > -1) {
                 if(!globalRecords[idx].changes) globalRecords[idx].changes = [];
-                var changeData = { time, pain, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo };
+                var changeData = { time, pain, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo };
                 if(editIndex !== '') globalRecords[idx].changes[parseInt(editIndex)] = changeData;
                 else globalRecords[idx].changes.push(changeData);
                 globalRecords[idx].changes.sort((a,b) => new Date(a.time) - new Date(b.time));
@@ -598,6 +624,8 @@
             document.getElementById('form-title').innerText = "新增紀錄";
             document.getElementById('save-btn-text').innerText = "儲存紀錄";
             document.getElementById('cancel-edit-btn').style.display = 'none';
+            document.getElementById('sleep-toggle').checked = false;
+            document.getElementById('sleep-duration').style.display = 'none';
             document.getElementById('sleep-duration').value = '8小時';
             document.querySelectorAll('#tab-record input[type="checkbox"], #tab-record input[type="radio"]').forEach(el => el.checked = false);
             document.querySelectorAll('#tab-record input[type="text"], #tab-record textarea').forEach(el => el.value = '');
@@ -631,16 +659,19 @@
     window.getRadioVal = function(scope, name) { var el = document.querySelector(scope + ' input[name="' + name + '"]:checked'); return el ? el.value : ''; };
 
     window.renderDynamicButtons = function() {
-        var p = window.appLogic ? window.appLogic.getPrefs() : {contexts:[], triggers:[], symptoms:[], meds:[]};
+        var p = window.appLogic ? window.appLogic.getPrefs() : {contexts:[], triggers:[], painTypes:[], symptoms:[], meds:[]};
         if(!p.contexts) p.contexts = [];
+        if(!p.painTypes) p.painTypes = [];
         
         document.getElementById('dynamic-contexts').innerHTML = p.contexts.map(t => '<label><input type="checkbox" value="'+t+'" class="context-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('dynamic-triggers').innerHTML = p.triggers.map(t => '<label><input type="checkbox" value="'+t+'" class="trigger-check"><div class="btn-check">'+t+'</div></label>').join('');
+        document.getElementById('dynamic-painTypes').innerHTML = p.painTypes.map(t => '<label><input type="checkbox" value="'+t+'" class="painType-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('dynamic-symptoms').innerHTML = p.symptoms.map(t => '<label><input type="checkbox" value="'+t+'" class="symptom-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('dynamic-meds').innerHTML = p.meds.map(m => '<label><input type="checkbox" value="'+m+'" class="med-check"><div class="btn-check">'+m+'</div></label>').join('');
         
         document.getElementById('modal-dynamic-contexts').innerHTML = p.contexts.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-context-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-triggers').innerHTML = p.triggers.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-trigger-check"><div class="btn-check">'+t+'</div></label>').join('');
+        document.getElementById('modal-dynamic-painTypes').innerHTML = p.painTypes.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-painType-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-symptoms').innerHTML = p.symptoms.map(t => '<label><input type="checkbox" value="'+t+'" class="modal-symptom-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-meds').innerHTML = p.meds.map(m => '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>').join('');
     };
@@ -659,12 +690,17 @@
         document.getElementById('memo').value = record.memo || '';
         document.getElementById('custom-context').value = '';
         document.getElementById('custom-trigger').value = '';
+        document.getElementById('custom-painType').value = '';
         document.getElementById('custom-symptom').value = '';
         document.getElementById('custom-med').value = '';
         
-        if (record.sleep !== undefined) {
+        if (record.sleep && record.sleep !== '未填寫') {
+             document.getElementById('sleep-toggle').checked = true;
+             document.getElementById('sleep-duration').style.display = 'block';
              document.getElementById('sleep-duration').value = record.sleep;
         } else {
+             document.getElementById('sleep-toggle').checked = false;
+             document.getElementById('sleep-duration').style.display = 'none';
              document.getElementById('sleep-duration').value = '8小時';
         }
 
@@ -677,6 +713,7 @@
         if(record.locs) record.locs.split('、').forEach(v => { var cb = document.querySelector('#tab-record .loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.contexts) record.contexts.split('、').forEach(v => { var cb = document.querySelector('#tab-record .context-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.triggers) record.triggers.split('、').forEach(v => { var cb = document.querySelector('#tab-record .trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+        if(record.painTypes) record.painTypes.split('、').forEach(v => { var cb = document.querySelector('#tab-record .painType-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.symptoms) record.symptoms.split('、').forEach(v => { var cb = document.querySelector('#tab-record .symptom-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.meds) record.meds.split('、').forEach(v => { var cb = document.querySelector('#tab-record .med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         
@@ -691,6 +728,7 @@
         document.querySelectorAll('#change-modal input[type="radio"], #change-modal input[type="checkbox"]').forEach(el => el.checked = false);
         document.getElementById('change-custom-context').value = '';
         document.getElementById('change-custom-trigger').value = '';
+        document.getElementById('change-custom-painType').value = '';
         document.getElementById('change-custom-symptom').value = '';
         document.getElementById('change-custom-med').value = '';
 
@@ -705,6 +743,7 @@
             if(change.locs) change.locs.split('、').forEach(v => { var cb = document.querySelector('.modal-loc-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.contexts) change.contexts.split('、').forEach(v => { var cb = document.querySelector('.modal-context-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.triggers) change.triggers.split('、').forEach(v => { var cb = document.querySelector('.modal-trigger-check[value="' + v + '"]'); if(cb) cb.checked = true; });
+            if(change.painTypes) change.painTypes.split('、').forEach(v => { var cb = document.querySelector('.modal-painType-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.symptoms) change.symptoms.split('、').forEach(v => { var cb = document.querySelector('.modal-symptom-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             if(change.meds) change.meds.split('、').forEach(v => { var cb = document.querySelector('.modal-med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
             document.getElementById('change-memo').value = change.memo || '';
@@ -771,12 +810,12 @@
                     if(c.locs) changesHtml += '<div><strong>部位：</strong>' + c.locs + '</div>';
                     if(c.contexts) changesHtml += '<div><strong>情境狀態：</strong>' + c.contexts + '</div>';
                     if(c.triggers) changesHtml += '<div><strong>潛在誘因：</strong>' + c.triggers + '</div>';
+                    if(c.painTypes) changesHtml += '<div><strong>疼痛方式：</strong>' + c.painTypes + '</div>';
                     if(c.symptoms) changesHtml += '<div><strong>伴隨症狀：</strong>' + c.symptoms + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
-                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div>';
-                    changesHtml += '</div>'; // 徹底關閉 timeline-item
+                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div></div>';
                 });
-                changesHtml += '</div>'; // 徹底關閉 timeline
+                changesHtml += '</div>';
             }
 
             html += '<div class="record-card"><div class="record-time">' + dateStr + ' | ' + (parseInt(r.pain.charAt(0)) || 1) + '分</div>';
@@ -785,6 +824,7 @@
             html += '<div class="record-detail"><strong>部位：</strong>' + (r.locs || '無') + '</div>';
             if(r.contexts) html += '<div class="record-detail"><strong>情境狀態：</strong>' + r.contexts + '</div>';
             html += '<div class="record-detail"><strong>潛在誘因：</strong>' + (r.triggers || '無') + '</div>';
+            if(r.painTypes) html += '<div class="record-detail"><strong>疼痛方式：</strong>' + r.painTypes + '</div>';
             if(r.symptoms) html += '<div class="record-detail"><strong>伴隨症狀：</strong>' + r.symptoms + '</div>';
             html += '<div class="record-detail"><strong>用藥：</strong>' + (r.meds || '無') + (r.effect ? ' ('+r.effect+')' : '') + '</div>';
             if(r.memo) html += '<div class="record-detail"><strong>備註：</strong>' + r.memo + '</div>';
@@ -913,6 +953,7 @@
         var timeStats = {'早晨 (06-12)':0, '下午 (12-18)':0, '晚間 (18-24)':0, '深夜 (00-06)':0};
         var contextCounts = {};
         var triggerCounts = {};
+        var painTypeCounts = {};
         var symptomCounts = {};
 
         records.forEach(r => {
@@ -938,10 +979,12 @@
 
             if(r.contexts) r.contexts.split('、').forEach(t => { if(t) contextCounts[t] = (contextCounts[t] || 0) + 1; });
             if(r.triggers) r.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
+            if(r.painTypes) r.painTypes.split('、').forEach(t => { if(t) painTypeCounts[t] = (painTypeCounts[t] || 0) + 1; });
             if(r.symptoms) r.symptoms.split('、').forEach(t => { if(t) symptomCounts[t] = (symptomCounts[t] || 0) + 1; });
             if(r.changes) r.changes.forEach(c => {
                 if(c.contexts) c.contexts.split('、').forEach(t => { if(t) contextCounts[t] = (contextCounts[t] || 0) + 1; });
                 if(c.triggers) c.triggers.split('、').forEach(t => { if(t) triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
+                if(c.painTypes) c.painTypes.split('、').forEach(t => { if(t) painTypeCounts[t] = (painTypeCounts[t] || 0) + 1; });
                 if(c.symptoms) c.symptoms.split('、').forEach(t => { if(t) symptomCounts[t] = (symptomCounts[t] || 0) + 1; });
             });
         });
@@ -961,6 +1004,10 @@
         var sortedTriggers = Object.entries(triggerCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
         var maxTriggerStat = sortedTriggers.length > 0 ? sortedTriggers[0][1] : 0;
         var triggerHtml = sortedTriggers.length > 0 ? sortedTriggers.map(t => makeBarHtml(t[0], t[1], maxTriggerStat, 'pain-fill')).join('') : '<div style="color:#aaa; font-size:14px;">尚無紀錄</div>';
+
+        var sortedPainTypes = Object.entries(painTypeCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
+        var maxPainTypeStat = sortedPainTypes.length > 0 ? sortedPainTypes[0][1] : 0;
+        var painTypeHtml = sortedPainTypes.length > 0 ? sortedPainTypes.map(t => makeBarHtml(t[0], t[1], maxPainTypeStat, 'pain-fill')).join('') : '<div style="color:#aaa; font-size:14px;">尚無紀錄</div>';
 
         var sortedSymptoms = Object.entries(symptomCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
         var maxSymptomStat = sortedSymptoms.length > 0 ? sortedSymptoms[0][1] : 0;
@@ -984,6 +1031,10 @@
                 ${triggerHtml}
             </div>
             <div class="section">
+                <div class="section-title">疼痛方式排行榜 (Top 5)</div>
+                ${painTypeHtml}
+            </div>
+            <div class="section">
                 <div class="section-title">伴隨症狀排行榜 (Top 5)</div>
                 ${symptomHtml}
             </div>
@@ -993,12 +1044,12 @@
     window.exportCSV = function() {
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         if(records.length === 0) return window.showToast("無資料可匯出");
-        var csvContent = "\uFEFF時間,痛覺評分,部位,持續時間,前天睡眠,潛在誘因,伴隨症狀,發作情境,用藥,藥效,備註,轉移軌跡\n";
+        var csvContent = "\uFEFF時間,痛覺評分,部位,持續時間,前天睡眠,潛在誘因,疼痛方式,伴隨症狀,發作情境,用藥,藥效,備註,轉移軌跡\n";
         
         records.forEach(r => {
             var track = (r.changes && r.changes.length > 0) ? r.changes.map((c, i) => `[變化${i+1}] ${c.time.split('T')[1]} 痛:${parseInt(c.pain.charAt(0))||1} 部位:${c.locs||'無'}`).join(' / ') : '無';
             var row = [
-                r.time.replace('T', ' '), parseInt(r.pain.charAt(0))||1, r.locs, r.duration||'', r.sleep||'', r.triggers, r.symptoms||'', r.contexts||'', r.meds, r.effect, 
+                r.time.replace('T', ' '), parseInt(r.pain.charAt(0))||1, r.locs, r.duration||'', r.sleep||'', r.triggers, r.painTypes||'', r.symptoms||'', r.contexts||'', r.meds, r.effect, 
                 (r.memo || '').replace(/,/g, "，").replace(/\n/g, " "), track
             ];
             csvContent += row.join(",") + "\n";
