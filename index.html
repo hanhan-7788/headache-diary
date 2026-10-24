@@ -12,8 +12,7 @@
         --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #e0e0e0; 
         --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; 
         --timeline-color: #4f8bc988; 
-        --period-color: #6c404f; /* 首頁月曆暗紅外框 */
-        --period-bg-color: #9a505e; /* 設定頁月曆粉紅背景與按鈕 */
+        --period-color: #6c404f;
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-bottom: 80px; }
     * { box-sizing: border-box; }
@@ -64,9 +63,9 @@
     .today-highlight { background-color: #666; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
     
     .period-border { border: 2px solid var(--period-color) !important; }
-    .period-filled { background: var(--period-bg-color) !important; color: #fff; border-color: var(--period-bg-color) !important; font-weight: bold;}
+    .period-filled { background: #9a505e !important; color: #fff; border-color: #9a505e !important; font-weight: bold;}
     .editable-cell { cursor: pointer; }
-    .editable-cell:hover { border-color: var(--period-bg-color); }
+    .editable-cell:hover { border-color: #9a505e; }
 
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 4px; }
     .cal-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -77,6 +76,32 @@
     .pain-4 { background-color: #e53935; }
     .pain-5 { background-color: #8e24aa; }
     .pain-fill { background-color: var(--primary-color); }
+
+    /* 懸浮儲存按鈕 (右下角) */
+    .fab-save {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background: var(--primary-color);
+        color: #fff;
+        border: none;
+        border-radius: 30px;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        z-index: 90;
+        cursor: pointer;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        display: none; /* 僅在 record 頁面顯示 */
+        align-items: center;
+        gap: 8px;
+    }
+    .fab-save.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(10px);
+    }
 
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #main-app { display: none; }
@@ -101,11 +126,14 @@
 
 <!-- 主程式區塊 -->
 <div id="main-app">
+    <!-- 全域懸浮儲存按鈕 -->
+    <button class="fab-save" id="fab-save" onclick="appLogic.saveRecord()">💾 <span>儲存紀錄</span></button>
+
     <div class="container">
         <!-- 1. 首頁 Dashboard -->
         <div id="tab-dashboard" class="tab-content active">
             <div style="display:flex; justify-content: space-between; align-items: center;">
-                <h2>頭痛月曆與摘要</h2>
+                <h2>🏠 頭痛月曆與摘要</h2>
                 <button class="action-btn" id="btn-logout" style="background: transparent; border: 1px solid #555;">登出</button>
             </div>
             
@@ -131,7 +159,7 @@
 
         <!-- 新增/編輯表單 -->
         <div id="tab-record" class="tab-content">
-            <h2 id="form-title">新增紀錄</h2>
+            <h2 id="form-title">➕ 新增紀錄</h2>
             
             <div class="section">
                 <div class="section-title">發作時間 (點擊修改)</div>
@@ -257,14 +285,16 @@
             </div>
             
             <input type="hidden" id="edit-id" value="">
-            <button class="save-btn" onclick="appLogic.saveRecord()" id="save-btn-text">儲存紀錄</button>
+            
+            <!-- 原本的儲存按鈕，現在做為被 observer 監視的底部錨點 -->
+            <button class="save-btn" onclick="appLogic.saveRecord()" id="save-btn-text">💾 儲存紀錄</button>
             <button class="save-btn" style="background:#555; display:none;" id="cancel-edit-btn" onclick="appLogic.cancelEdit()">取消返回</button>
         </div>
 
         <!-- 2. 歷史紀錄 -->
         <div id="tab-history" class="tab-content">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="margin: 0;">歷史紀錄</h2>
+                <h2 style="margin: 0;">📖 歷史紀錄</h2>
                 <button class="action-btn" style="background: #388e3c;" onclick="window.exportCSV()">📄 匯出 CSV</button>
             </div>
             <div id="records-list"></div>
@@ -272,7 +302,7 @@
 
         <!-- 3. 圖表分析 -->
         <div id="tab-charts" class="tab-content">
-            <h2>圖表與分析</h2>
+            <h2>📊 圖表與分析</h2>
             
             <div class="section">
                 <div class="section-title">📊 數據摘要</div>
@@ -288,8 +318,8 @@
             
             <div class="section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <div class="section-title" style="margin:0; border:none; padding:0; color:var(--period-bg-color);">🩸 生理期追蹤</div>
-                    <button class="action-btn" id="period-edit-btn" style="background:var(--period-bg-color); margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
+                    <div class="section-title" style="margin:0; border:none; padding:0; color:#9a505e;">🩸 生理期追蹤</div>
+                    <button class="action-btn" id="period-edit-btn" style="background:#9a505e; margin:0;" onclick="appLogic.togglePeriodEdit()">✏️ 編輯</button>
                 </div>
                 
                 <div class="calendar-header" style="font-size: 16px;">
@@ -472,10 +502,10 @@
                 btn.innerHTML = '✅ 完成';
                 btn.style.background = 'var(--primary-color)';
                 hint.innerText = '編輯模式中：直接點擊方格以標記/取消生理期';
-                hint.style.color = 'var(--period-bg-color)';
+                hint.style.color = '#9a505e';
             } else {
                 btn.innerHTML = '✏️ 編輯';
-                btn.style.background = 'var(--period-bg-color)';
+                btn.style.background = '#9a505e';
                 hint.innerText = '點擊上方「編輯」解鎖，直接點擊方格紀錄';
                 hint.style.color = '#aaa';
                 syncToCloud(); 
@@ -621,8 +651,9 @@
         },
         cancelEdit: () => {
             document.getElementById('edit-id').value = '';
-            document.getElementById('form-title').innerText = "新增紀錄";
-            document.getElementById('save-btn-text').innerText = "儲存紀錄";
+            document.getElementById('form-title').innerText = "➕ 新增紀錄";
+            document.getElementById('save-btn-text').innerText = "💾 儲存紀錄";
+            document.getElementById('fab-save').innerHTML = "💾 <span>儲存紀錄</span>";
             document.getElementById('cancel-edit-btn').style.display = 'none';
             document.getElementById('sleep-toggle').checked = false;
             document.getElementById('sleep-duration').style.display = 'none';
@@ -638,6 +669,22 @@
     var currentCalDate = new Date();
     window.periodCalDate = new Date();
     
+    // 初始化 IntersectionObserver 控制懸浮按鈕
+    window.addEventListener('DOMContentLoaded', () => {
+        var fab = document.getElementById('fab-save');
+        var inlineBtn = document.getElementById('save-btn-text');
+        if (window.IntersectionObserver && inlineBtn) {
+            var obs = new IntersectionObserver(function(entries) {
+                if(entries[0].isIntersecting) {
+                    fab.classList.add('hidden'); // 當滑到最下面，隱藏懸浮按鈕
+                } else {
+                    fab.classList.remove('hidden'); // 離開底部，顯示懸浮按鈕
+                }
+            }, { threshold: 0.1 });
+            obs.observe(inlineBtn);
+        }
+    });
+
     window.showToast = function(msg) {
         var toast = document.createElement('div');
         toast.innerText = msg;
@@ -717,8 +764,9 @@
         if(record.symptoms) record.symptoms.split('、').forEach(v => { var cb = document.querySelector('#tab-record .symptom-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         if(record.meds) record.meds.split('、').forEach(v => { var cb = document.querySelector('#tab-record .med-check[value="' + v + '"]'); if(cb) cb.checked = true; });
         
-        document.getElementById('form-title').innerText = "編輯紀錄";
-        document.getElementById('save-btn-text').innerText = "儲存編輯";
+        document.getElementById('form-title').innerText = "✏️ 編輯紀錄";
+        document.getElementById('save-btn-text').innerText = "💾 儲存編輯";
+        document.getElementById('fab-save').innerHTML = "💾 <span>儲存編輯</span>";
         document.getElementById('cancel-edit-btn').style.display = 'block';
         window.switchTab('record');
     };
@@ -774,6 +822,10 @@
         var navEl = document.getElementById('nav-' + (tab === 'record' ? 'dashboard' : tab)); 
         if(tabEl) tabEl.classList.add('active');
         if(navEl) navEl.classList.add('active'); 
+        
+        var fab = document.getElementById('fab-save');
+        if(tab === 'record') { fab.style.display = 'flex'; } 
+        else { fab.style.display = 'none'; }
         
         window.scrollTo({ top: 0, behavior: 'auto' });
         
