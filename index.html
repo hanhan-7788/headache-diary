@@ -394,7 +394,7 @@
     let globalPeriods = []; 
     let isPeriodEditMode = false;
     
-    // 更新預設標籤大補帖 (拆分疼痛方式、更新藥物)
+    // 預設標籤設定 (已加入間歇性疼痛並更新藥物)
     const LATEST_DEFAULT_PREFS = {
         contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
         triggers: ['頭吹到風', '氣溫降低', '睡眠不足', '螢幕看太久', '壓力', '生理期'],
@@ -432,7 +432,6 @@
                 globalRecords = data.records || [];
                 if(data.prefs) {
                     globalPrefs = data.prefs;
-                    // 自動防呆修補舊資料庫缺乏的新屬性
                     if(!globalPrefs.contexts) globalPrefs.contexts = [...LATEST_DEFAULT_PREFS.contexts];
                     if(!globalPrefs.painTypes) globalPrefs.painTypes = [...LATEST_DEFAULT_PREFS.painTypes];
                     if(!globalPrefs.symptoms) globalPrefs.symptoms = [...LATEST_DEFAULT_PREFS.symptoms];
@@ -803,7 +802,8 @@
                 changesHtml = '<div class="timeline">';
                 r.changes.forEach((c, cIdx) => {
                     var cTime = c.time.split('T')[1] || c.time;
-                    changesHtml += '<div class="timeline-item"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">';
+                    changesHtml += '<div class="timeline-item">';
+                    changesHtml += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">';
                     changesHtml += '<div style="font-size:14px; font-weight:bold; color:var(--primary-color);">🕒 第 ' + (cIdx+1) + ' 次變化 (' + cTime + ')</div>';
                     changesHtml += '<div><span style="cursor:pointer; margin-right:10px; font-size:16px;" onclick="openChangeModal(' + r.id + ', ' + cIdx + ')">✏️</span><span style="cursor:pointer; font-size:16px;" onclick="window.appLogic.deleteChange(' + r.id + ', ' + cIdx + ')">🗑️</span></div></div>';
                     changesHtml += '<div><strong>痛覺：</strong>' + (parseInt(c.pain.charAt(0)) || 1) + '分</div>';
@@ -813,7 +813,8 @@
                     if(c.painTypes) changesHtml += '<div><strong>疼痛方式：</strong>' + c.painTypes + '</div>';
                     if(c.symptoms) changesHtml += '<div><strong>伴隨症狀：</strong>' + c.symptoms + '</div>';
                     if(c.meds) changesHtml += '<div><strong>用藥：</strong>' + c.meds + (c.effect ? ' ('+c.effect+')' : '') + '</div>';
-                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div></div>';
+                    if(c.memo) changesHtml += '<div style="color:#bbb;"><strong>備註：</strong>' + c.memo + '</div>';
+                    changesHtml += '</div>'; 
                 });
                 changesHtml += '</div>';
             }
