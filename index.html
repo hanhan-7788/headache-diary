@@ -49,7 +49,7 @@
 
     /* 通用區塊與表單元件 */
     .section { background: var(--surface-color); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #282828; }
-    .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
     
     input[type="datetime-local"], input[type="date"], input[type="time"], input[type="text"], input[type="number"], textarea, select { 
         width: 100%; padding: 11px 12px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; font-size: 15px; 
@@ -79,6 +79,12 @@
     .chip.med { background: rgba(76,175,80,0.15); border-color: #4caf50; color: #a5d6a7; }
     .chip.period { background: rgba(216,27,96,0.2); border-color: #d81b60; color: #f48fb1; }
 
+    /* 設定頁自訂標籤管理列表 */
+    .pref-tag-box { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .pref-tag-item { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-color); border: 1px solid #444; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: #eee; }
+    .pref-tag-item span.icon-btn { cursor: pointer; font-size: 13px; opacity: 0.75; padding: 2px; }
+    .pref-tag-item span.icon-btn:hover { opacity: 1; }
+
     .record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 14px; border-radius: 10px; margin-bottom: 12px; transition: 0.25s; }
     .record-card-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
     .record-card-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); }
@@ -107,9 +113,10 @@
     .today-highlight { background-color: #555; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; font-weight: bold; }
     
     .period-border { border: 2px solid var(--period-bg-color) !important; }
-    .period-filled { background: rgba(154, 80, 94, 0.45) !important; color: #fff; border-color: var(--period-bg-color) !important; }
+    .period-filled { background: rgba(154, 80, 94, 0.55) !important; color: #fff; border-color: var(--period-bg-color) !important; font-weight: bold; }
     .period-predicted { border: 1px dashed var(--period-bg-color) !important; }
     .ovulation-day { border: 1px dashed var(--ovulation-color) !important; }
+    .editable-pulse { border-color: #f48fb1; }
 
     .dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 2px; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; }
@@ -119,6 +126,12 @@
     .pain-4 { background-color: #e53935; }
     .pain-5 { background-color: #8e24aa; }
     .pain-fill { background-color: var(--primary-color); }
+
+    /* 圖表月份選擇器 (與月曆風格一致) */
+    .month-stepper { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 4px 6px; border-radius: 8px; }
+    .month-stepper button { background: #333; color: #fff; border: none; padding: 4px 9px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
+    .month-stepper button:active { background: var(--primary-color); }
+    .month-stepper span { font-size: 13px; font-weight: bold; color: var(--primary-color); min-width: 85px; text-align: center; }
 
     /* 圖表容器 */
     .chart-box { position: relative; width: 100%; height: 250px; margin-top: 10px; }
@@ -410,7 +423,7 @@
                 <button class="save-btn" id="save-anchor-change" onclick="appLogic.saveChange()">💾 儲存變化</button>
             </div>
 
-            <!-- 4. 歷史紀錄 (支援篩選與收合卡片) -->
+            <!-- 4. 歷史紀錄 (支援篩選與痛覺變化走向顯示) -->
             <div id="tab-history" class="tab-content">
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h2 style="margin: 0;">📖 歷史紀錄</h2>
@@ -443,8 +456,12 @@
 
                 <div class="section">
                     <div class="section-title">
-                        <span>📈 當月每日最高痛覺 vs 生理期疊合曲線</span>
-                        <input type="month" id="chart-month-picker" style="width:145px; padding:4px 8px; font-size:13px;" onchange="window.renderCharts()">
+                        <span>📈 當月每日最高痛覺 vs 生理期疊合</span>
+                        <div class="month-stepper">
+                            <button onclick="window.changeChartMonth(-1)">◀</button>
+                            <span id="chart-month-label">...</span>
+                            <button onclick="window.changeChartMonth(1)">▶</button>
+                        </div>
                     </div>
                     <div style="font-size:12px; color:#aaa; margin-bottom:6px;">粉紅底色代表生理期，一眼觀察經期前後的荷爾蒙頭痛高峰</div>
                     <div class="chart-box"><canvas id="chartDailyPainPeriod"></canvas></div>
@@ -480,30 +497,54 @@
                 <div id="charts-container"></div>
             </div>
 
-            <!-- 6. 系統設定 -->
+            <!-- 6. 頭痛設定頁面 (五大分類選項新增、修改、刪除) -->
             <div id="tab-settings" class="tab-content">
-                <h2>⚙️ 系統設定</h2>
-                <div class="section">
-                    <div class="section-title">標籤選項管理</div>
-                    <p style="font-size:13px; color:#aaa;">清除所有自訂新增的誘因、症狀、情境與藥物，還原為系統預設值（不會刪除歷史紀錄）。</p>
-                    <button class="action-btn" style="width: 100%; padding: 12px; background: #333;" onclick="appLogic.resetPrefs()">🔄 重置回預設標籤選項</button>
-                </div>
+                <h2>⚙️ 頭痛選項標籤管理</h2>
+                <p style="font-size:13px; color:#aaa; margin-bottom:15px;">可自由新增、點擊 ✏️ 修改名稱（歷史紀錄中的同名標籤也會同步更新），或點擊 🗑️ 刪除選項按鈕。</p>
+                <div id="headache-prefs-manager"></div>
             </div>
         </div>
 
         <!-- ==================== 模組 2：生理期專業紀錄 ==================== -->
         <div id="mod-period" class="module-view">
             <div id="period-sub-dash">
-                <!-- 週期預測圓環與摘要面板 -->
+                <!-- 週期預測與倒數天數看板 -->
                 <div class="section" style="border-color: var(--period-bg-color); background: linear-gradient(145deg, #1e1e1e, #2a1b20);">
-                    <div id="period-prediction-banner" style="text-align:center; padding: 10px 0;"></div>
+                    <div id="period-prediction-banner" style="text-align:center; padding: 8px 0;"></div>
                 </div>
 
+                <!-- 1. 批次區間設定與快速編輯面板 -->
                 <div class="section">
+                    <div class="section-title">
+                        <span style="color:#f48fb1;">📅 經期日期設定 (區間批次 / 點擊圈選)</span>
+                        <button class="action-btn" id="period-grid-edit-btn" style="background:var(--period-bg-color); border:none; font-weight:bold;" onclick="appLogic.togglePeriodGridEditMode()">✏️ 點擊月曆快速圈選</button>
+                    </div>
+                    <div style="background:var(--bg-color); padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:15px;">
+                        <div style="font-size:13px; color:#ccc; margin-bottom:8px; font-weight:bold;">⚡ 方式 A：選擇開始與結束日期，一鍵標記整段經期</div>
+                        <div class="form-row" style="margin-bottom:8px;">
+                            <div>
+                                <span class="form-label">開始日期</span>
+                                <input type="date" id="period-range-start" onchange="window.autoFillPeriodEnd()">
+                            </div>
+                            <div>
+                                <span class="form-label">結束日期</span>
+                                <input type="date" id="period-range-end">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="action-btn" style="flex:2; background:var(--period-bg-color); border:none; padding:10px; font-weight:bold;" onclick="appLogic.applyPeriodRange(true)">🩸 標記此區間為生理期</button>
+                            <button class="action-btn" style="flex:1; background:#444; border:none; padding:10px;" onclick="appLogic.applyPeriodRange(false)">🗑️ 清除此區間</button>
+                        </div>
+                    </div>
+
+                    <!-- 月曆區 -->
                     <div class="calendar-header">
                         <button class="action-btn" onclick="appLogic.changePeriodMonth(-1)">◀ 上月</button>
                         <span id="period-month-year">...</span>
                         <button class="action-btn" onclick="appLogic.changePeriodMonth(1)">下月 ▶</button>
+                    </div>
+                    <div id="period-edit-mode-hint" style="text-align:center; font-size:13px; color:#aaa; margin-bottom:10px;">
+                        💡 點擊下方日期可查看/填寫當日症狀；或按右上角「✏️ 點擊月曆快速圈選」直接塗選經期
                     </div>
                     <div class="calendar-grid" id="period-grid"></div>
                     <div style="margin-top:12px; font-size:12px; color:#aaa; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
@@ -513,17 +554,17 @@
                     </div>
                 </div>
 
-                <!-- 點擊月曆直接編輯當日生理期細節 -->
+                <!-- 2. 點擊單日：編輯當日生理期細節 -->
                 <div class="section" id="period-day-editor">
                     <div class="section-title">
-                        <span id="period-selected-date-label">🩸 選擇日期紀錄詳情</span>
-                        <label style="margin:0; cursor:pointer;">
-                            <input type="checkbox" id="period-active-toggle" onchange="window.togglePeriodDayForm(this.checked)">
-                            <div class="btn-check" style="padding:6px 14px; font-size:13px; background:var(--period-bg-color); color:#fff;">本日為生理期 / 點狀出血</div>
-                        </label>
+                        <span id="period-selected-date-label">🩸 單日經期狀態與症狀詳情</span>
+                        <button class="action-btn" id="period-single-toggle-btn" onclick="appLogic.toggleSinglePeriodDay()">➕ 將此日加入生理期</button>
+                    </div>
+                    <div id="period-detail-empty-hint" style="color:#888; font-size:14px; padding:6px 0;">
+                        此日尚未標記為生理期。若這天有來經或點狀出血，請點擊右上角按鈕加入，即可記錄當日血量與經痛細節。
                     </div>
                     <div id="period-detail-form" style="display:none; margin-top:12px;">
-                        <div class="form-label">經血量</div>
+                        <div class="form-label">當日經血量</div>
                         <div class="btn-group" style="margin-bottom:12px;">
                             <label><input type="radio" name="p-flow" value="點狀"><div class="btn-check">點狀</div></label>
                             <label><input type="radio" name="p-flow" value="少"><div class="btn-check">量少</div></label>
@@ -560,7 +601,7 @@
                             <label><input type="checkbox" class="p-symp" value="想吃甜食"><div class="btn-check">想吃甜食</div></label>
                         </div>
                         <input type="text" id="p-memo" placeholder="當日生理期備註 (如：吃止痛藥、排卵分泌物...)" style="margin-bottom:10px;">
-                        <button class="save-btn" style="background:var(--period-bg-color);" onclick="appLogic.savePeriodDayDetail()">💾 儲存當日生理期紀錄</button>
+                        <button class="save-btn" style="background:var(--period-bg-color);" onclick="appLogic.savePeriodDayDetail()">💾 儲存當日症狀詳情</button>
                     </div>
                 </div>
             </div>
@@ -885,6 +926,7 @@
     let globalRecords = [];
     let globalPeriods = []; 
     let globalPeriodDetails = {}; 
+    window.isPeriodGridEditMode = false;
     
     const LATEST_DEFAULT_PREFS = {
         contexts: ['剛睡醒', '工作/專注中', '家中', '辦公室/學校', '戶外'],
@@ -904,7 +946,7 @@
             { id: 's2', name: '維生素 D3', time: '飯後', stock: 90 },
             { id: 's3', name: '甘胺酸鎂', time: '睡前', stock: 60 }
         ],
-        suppLogs: {}, // { 'YYYY-MM-DD': ['s1', 's2'] }
+        suppLogs: {},
         allergy: [],
         vitals: [],
         clinic: [],
@@ -945,6 +987,8 @@
                     if(!globalPrefs.contexts) globalPrefs.contexts = [...LATEST_DEFAULT_PREFS.contexts];
                     if(!globalPrefs.painTypes) globalPrefs.painTypes = [...LATEST_DEFAULT_PREFS.painTypes];
                     if(!globalPrefs.symptoms) globalPrefs.symptoms = [...LATEST_DEFAULT_PREFS.symptoms];
+                    if(!globalPrefs.triggers) globalPrefs.triggers = [...LATEST_DEFAULT_PREFS.triggers];
+                    if(!globalPrefs.meds) globalPrefs.meds = [...LATEST_DEFAULT_PREFS.meds];
                 }
                 globalPeriods = data.periods || [];
                 globalPeriodDetails = data.periodDetails || {};
@@ -960,6 +1004,7 @@
             
             window.initDefaultDates();
             window.renderDynamicButtons();
+            window.renderHeadachePrefsManager();
             window.renderCalendar();
             window.renderPeriodCalendar();
             window.updateDashboard();
@@ -977,6 +1022,14 @@
         });
     }
 
+    const PREF_RECORD_FIELD_MAP = {
+        triggers: 'triggers',
+        painTypes: 'painTypes',
+        symptoms: 'symptoms',
+        contexts: 'contexts',
+        meds: 'meds'
+    };
+
     window.appLogic = {
         getRecords: () => globalRecords,
         getPrefs: () => globalPrefs,
@@ -984,45 +1037,158 @@
         getPeriodDetails: () => globalPeriodDetails,
         getModules: () => globalModules,
 
-        // 生理期儲存與連動
-        savePeriodDayDetail: () => {
-            var dateStr = window.selectedPeriodDateStr;
-            if(!dateStr) return;
-            var isActive = document.getElementById('period-active-toggle').checked;
-            var idx = globalPeriods.indexOf(dateStr);
-            if(isActive && idx === -1) globalPeriods.push(dateStr);
-            if(!isActive && idx > -1) globalPeriods.splice(idx, 1);
+        // ==================== 1. 頭痛設定頁：五大項目新增、修改、刪除 ====================
+        addPrefItem: (categoryKey) => {
+            var inputEl = document.getElementById('new-pref-' + categoryKey);
+            if(!inputEl) return;
+            var val = inputEl.value.trim();
+            if(!val) return window.showToast("請輸入選項名稱！");
+            if(!globalPrefs[categoryKey]) globalPrefs[categoryKey] = [];
+            if(globalPrefs[categoryKey].includes(val)) return window.showToast("此選項已存在！");
+            globalPrefs[categoryKey].push(val);
+            inputEl.value = '';
+            syncToCloud();
+            window.renderDynamicButtons();
+            window.renderHeadachePrefsManager();
+            window.showToast("已新增選項：" + val);
+        },
+        editPrefItem: (categoryKey, index) => {
+            var oldVal = globalPrefs[categoryKey][index];
+            var newVal = prompt(`修改「${oldVal}」的名稱：\n(歷史紀錄中的同名標籤也會一併更新)`, oldVal);
+            if(newVal === null) return;
+            newVal = newVal.trim();
+            if(!newVal || newVal === oldVal) return;
+            if(globalPrefs[categoryKey].includes(newVal)) return window.showToast("此名稱已存在！");
 
-            if(isActive) {
-                var flow = window.getRadioVal('#period-detail-form', 'p-flow') || '中';
-                var cramp = window.getRadioVal('#period-detail-form', 'p-cramp') || '無';
-                var colors = []; document.querySelectorAll('#period-detail-form .p-color:checked').forEach(el => colors.push(el.value));
-                var symps = []; document.querySelectorAll('#period-detail-form .p-symp:checked').forEach(el => symps.push(el.value));
-                var memo = document.getElementById('p-memo').value.trim();
-                globalPeriodDetails[dateStr] = { flow, cramp, colors, symps, memo };
+            globalPrefs[categoryKey][index] = newVal;
+
+            // 同步更新歷史紀錄與變化紀錄中的同名標籤
+            var recField = PREF_RECORD_FIELD_MAP[categoryKey];
+            if(recField) {
+                globalRecords.forEach(r => {
+                    if(r[recField]) {
+                        r[recField] = r[recField].split('、').map(item => item === oldVal ? newVal : item).join('、');
+                    }
+                    if(r.changes) {
+                        r.changes.forEach(c => {
+                            if(c[recField]) {
+                                c[recField] = c[recField].split('、').map(item => item === oldVal ? newVal : item).join('、');
+                            }
+                        });
+                    }
+                });
+            }
+
+            syncToCloud();
+            window.renderDynamicButtons();
+            window.renderHeadachePrefsManager();
+            window.showToast(`已將「${oldVal}」修改為「${newVal}」`);
+        },
+        deletePrefItem: (categoryKey, index) => {
+            var targetVal = globalPrefs[categoryKey][index];
+            if(!confirm(`確定要刪除「${targetVal}」選項嗎？\n(僅移除按鈕選項，不會影響已存檔的歷史紀錄)`)) return;
+            globalPrefs[categoryKey].splice(index, 1);
+            syncToCloud();
+            window.renderDynamicButtons();
+            window.renderHeadachePrefsManager();
+            window.showToast("已刪除選項：" + targetVal);
+        },
+
+        // ==================== 5. 生理期紀錄：區間批次設定、快速點選模式、單日詳情 ====================
+        togglePeriodGridEditMode: () => {
+            window.isPeriodGridEditMode = !window.isPeriodGridEditMode;
+            var btn = document.getElementById('period-grid-edit-btn');
+            var hint = document.getElementById('period-edit-mode-hint');
+            if(window.isPeriodGridEditMode) {
+                btn.innerHTML = '✅ 完成圈選並儲存';
+                btn.style.background = 'var(--success-color)';
+                hint.innerHTML = '<strong style="color:#f48fb1;">⚡ 快速圈選模式中：直接點擊下方月曆格子即可塗紅/取消生理期！</strong>';
             } else {
-                delete globalPeriodDetails[dateStr];
+                btn.innerHTML = '✏️ 點擊月曆快速圈選';
+                btn.style.background = 'var(--period-bg-color)';
+                hint.innerHTML = '💡 點擊下方日期可查看/填寫當日症狀；或按右上角「✏️ 點擊月曆快速圈選」直接塗選經期';
+                globalPeriods.sort();
+                syncToCloud();
+                window.renderCalendar();
+                window.showToast("生理期日期已儲存！");
+            }
+            window.renderPeriodCalendar();
+        },
+        applyPeriodRange: (isAdding) => {
+            var sStr = document.getElementById('period-range-start').value;
+            var eStr = document.getElementById('period-range-end').value;
+            if(!sStr || !eStr) return window.showToast("請選擇開始與結束日期！");
+            var sDate = new Date(sStr);
+            var eDate = new Date(eStr);
+            if(sDate > eDate) return window.showToast("結束日期不能早於開始日期！");
+            var diffDays = Math.round((eDate - sDate) / 86400000) + 1;
+            if(diffDays > 20) return window.showToast("單次區間請勿超過 20 天！");
+
+            for(var i=0; i<diffDays; i++) {
+                var cur = new Date(sDate);
+                cur.setDate(cur.getDate() + i);
+                var dStr = fmtDateStr(cur.getFullYear(), cur.getMonth(), cur.getDate());
+                var idx = globalPeriods.indexOf(dStr);
+                if(isAdding && idx === -1) globalPeriods.push(dStr);
+                if(!isAdding && idx > -1) {
+                    globalPeriods.splice(idx, 1);
+                    delete globalPeriodDetails[dStr];
+                }
             }
             globalPeriods.sort();
             syncToCloud();
+            window.selectedPeriodDateStr = sStr;
+            window.periodCalDate = new Date(sDate.getFullYear(), sDate.getMonth(), 1);
             window.renderPeriodCalendar();
             window.renderCalendar();
-            window.showToast("已儲存 " + dateStr + " 生理期紀錄！");
+            window.showToast(isAdding ? `已標記 ${sStr} ~ ${eStr} 為生理期！` : `已清除 ${sStr} ~ ${eStr} 標記！`);
+        },
+        toggleSinglePeriodDay: () => {
+            var dateStr = window.selectedPeriodDateStr;
+            if(!dateStr) return;
+            var idx = globalPeriods.indexOf(dateStr);
+            if(idx === -1) {
+                globalPeriods.push(dateStr);
+                globalPeriods.sort();
+                syncToCloud();
+                window.renderPeriodCalendar();
+                window.renderCalendar();
+                window.showToast(`已將 ${dateStr} 加入生理期，可於下方填寫細節`);
+            } else {
+                if(!confirm(`確定要取消 ${dateStr} 的生理期標記嗎？`)) return;
+                globalPeriods.splice(idx, 1);
+                delete globalPeriodDetails[dateStr];
+                syncToCloud();
+                window.renderPeriodCalendar();
+                window.renderCalendar();
+                window.showToast(`已取消 ${dateStr} 的生理期標記`);
+            }
+        },
+        savePeriodDayDetail: () => {
+            var dateStr = window.selectedPeriodDateStr;
+            if(!dateStr) return;
+            if(!globalPeriods.includes(dateStr)) {
+                globalPeriods.push(dateStr);
+                globalPeriods.sort();
+            }
+            var flow = window.getRadioVal('#period-detail-form', 'p-flow') || '中';
+            var cramp = window.getRadioVal('#period-detail-form', 'p-cramp') || '無';
+            var colors = []; document.querySelectorAll('#period-detail-form .p-color:checked').forEach(el => colors.push(el.value));
+            var symps = []; document.querySelectorAll('#period-detail-form .p-symp:checked').forEach(el => symps.push(el.value));
+            var memo = document.getElementById('p-memo').value.trim();
+            globalPeriodDetails[dateStr] = { flow, cramp, colors, symps, memo };
+
+            syncToCloud();
+            window.renderPeriodCalendar();
+            window.renderCalendar();
+            window.showToast("已儲存 " + dateStr + " 生理期症狀詳情！");
         },
         changePeriodMonth: (offset) => {
             window.periodCalDate.setMonth(window.periodCalDate.getMonth() + offset);
             window.renderPeriodCalendar();
         },
 
-        // 頭痛標籤與紀錄管理
-        resetPrefs: () => {
-            if(confirm("確定要還原預設標籤嗎？（不會刪除歷史紀錄）")) {
-                globalPrefs = JSON.parse(JSON.stringify(LATEST_DEFAULT_PREFS));
-                syncToCloud();
-                window.renderDynamicButtons();
-                window.showToast("標籤選項已重置！");
-            }
-        },
+        // 頭痛紀錄儲存邏輯
         savePrefs: (newCtx, newT, newP, newS, newM) => {
             if(newCtx && !globalPrefs.contexts.includes(newCtx)) globalPrefs.contexts.push(newCtx);
             if(newT && !globalPrefs.triggers.includes(newT)) globalPrefs.triggers.push(newT);
@@ -1031,6 +1197,7 @@
             if(newM && !globalPrefs.meds.includes(newM)) globalPrefs.meds.push(newM);
             syncToCloud();
             window.renderDynamicButtons();
+            window.renderHeadachePrefsManager();
         },
         saveCurrentEdit: () => {
             var activeTab = document.querySelector('#mod-headache .tab-content.active').id;
@@ -1256,7 +1423,6 @@
             syncToCloud();
             window.refreshCurrentModuleView();
         },
-        // 保健品打卡與庫存
         toggleSuppCheck: (suppId) => {
             var dateStr = document.getElementById('supp-check-date').value;
             if(!globalModules.suppLogs[dateStr]) globalModules.suppLogs[dateStr] = [];
@@ -1293,7 +1459,6 @@
             syncToCloud();
             window.renderSuppModule();
         },
-        // 飲水與咖啡因
         quickAddDrink: (name, ml, caf) => {
             var dateStr = document.getElementById('hyd-date').value;
             var timeStr = new Date().toTimeString().slice(0,5);
@@ -1316,6 +1481,7 @@
 <script>
     var currentModule = 'headache';
     var currentCalDate = new Date();
+    var chartCalDate = new Date();
     window.periodCalDate = new Date();
     window.selectedCalDateStr = '';
     window.selectedPeriodDateStr = '';
@@ -1339,9 +1505,16 @@
         window.selectedPeriodDateStr = todayStr;
         var nowIso = getLocalIsoStr(new Date());
         ['gi-time', 'alg-time'].forEach(id => { var el = document.getElementById(id); if(el) el.value = nowIso; });
-        ['slp-date', 'supp-check-date', 'vit-date', 'cln-date', 'hyd-date'].forEach(id => { var el = document.getElementById(id); if(el) el.value = todayStr; });
-        var mp = document.getElementById('chart-month-picker');
-        if(mp) mp.value = todayStr.slice(0, 7);
+        ['slp-date', 'supp-check-date', 'vit-date', 'cln-date', 'hyd-date', 'period-range-start'].forEach(id => { var el = document.getElementById(id); if(el) el.value = todayStr; });
+        window.autoFillPeriodEnd();
+    };
+
+    window.autoFillPeriodEnd = function() {
+        var sVal = document.getElementById('period-range-start').value;
+        if(!sVal) return;
+        var d = new Date(sVal);
+        d.setDate(d.getDate() + 4); // 預設 5 天經期
+        document.getElementById('period-range-end').value = fmtDateStr(d.getFullYear(), d.getMonth(), d.getDate());
     };
 
     window.toggleSidebar = function() {
@@ -1377,10 +1550,16 @@
         document.getElementById('sidebar-overlay').classList.remove('open');
         document.getElementById('fab-container').style.display = 'none';
 
-        // 控制底部導覽列顯示
         var bottomNav = document.getElementById('bottom-nav');
-        if(modName === 'headache' || modName === 'period') {
+        var navSettingsBtn = document.getElementById('nav-settings');
+        if(modName === 'headache') {
             bottomNav.style.display = 'flex';
+            if(navSettingsBtn) navSettingsBtn.style.display = 'block';
+            window.handleBottomNav('dashboard');
+        } else if(modName === 'period') {
+            bottomNav.style.display = 'flex';
+            // 生理期模組不硬湊設定頁，直接隱藏底部設定按鈕
+            if(navSettingsBtn) navSettingsBtn.style.display = 'none';
             window.handleBottomNav('dashboard');
         } else {
             bottomNav.style.display = 'none';
@@ -1394,8 +1573,9 @@
             window.switchTab(tabName);
         } else if(currentModule === 'period') {
             document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
-            document.getElementById('nav-' + tabName).classList.add('active');
-            document.getElementById('period-sub-dash').style.display = (tabName === 'dashboard' || tabName === 'settings') ? 'block' : 'none';
+            var btn = document.getElementById('nav-' + tabName);
+            if(btn) btn.classList.add('active');
+            document.getElementById('period-sub-dash').style.display = (tabName === 'dashboard') ? 'block' : 'none';
             document.getElementById('period-sub-history').style.display = (tabName === 'history') ? 'block' : 'none';
             document.getElementById('period-sub-charts').style.display = (tabName === 'charts') ? 'block' : 'none';
             if(tabName === 'dashboard') window.renderPeriodCalendar();
@@ -1460,6 +1640,7 @@
         return `${yyyy}-${mm}-${dd} (${day}) ${hh}:${min}`;
     }
 
+    // 單一痛覺條 (用於變化時間軸子項目)
     function getPainBarHtml(painStr) {
         var val = parseInt((painStr||'').charAt(0)) || 1;
         var emojis = ['😐', '🙁', '😣', '😫', '🤯'];
@@ -1473,6 +1654,39 @@
                         <div style="width:${pct}%; height:100%; background:${color}; border-radius:4px;"></div>
                     </div>
                     <span style="font-size:13px; font-weight:bold; color:${color};">Lv.${val}</span>
+                </div>`;
+    }
+
+    // 2. 主紀錄痛覺與變化走向呈現 (如：最高 Lv.4，並顯示 Lv.1 ➔ Lv.2 ➔ Lv.4)
+    function getRecordPainEvolutionHtml(r) {
+        var emojis = ['😐', '🙁', '😣', '😫', '🤯'];
+        var colors = ['#fbc02d', '#ff9800', '#f57c00', '#e53935', '#8e24aa'];
+        var initVal = parseInt((r.pain||'').charAt(0)) || 1;
+        var seq = [initVal];
+        if(r.changes && r.changes.length > 0) {
+            r.changes.forEach(c => {
+                seq.push(parseInt((c.pain||'').charAt(0)) || 1);
+            });
+        }
+        var maxVal = Math.max(...seq);
+        var maxEmoji = emojis[maxVal - 1] || '😐';
+        var maxColor = colors[maxVal - 1] || '#fbc02d';
+        var pct = maxVal * 20;
+
+        if(seq.length === 1) {
+            return getPainBarHtml(r.pain);
+        }
+
+        var flowBadges = seq.map(v => `<span style="color:${colors[v-1]}; font-weight:bold;">Lv.${v}</span>`).join('<span style="color:#777; margin:0 3px; font-size:11px;">➔</span>');
+
+        return `<div style="display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; font-weight:normal;">
+                    <span style="font-size:19px; line-height:1;" title="最高痛覺 Lv.${maxVal}">${maxEmoji}</span>
+                    <div style="width:75px; height:8px; background:#333; border-radius:4px; overflow:hidden; display:flex;">
+                        <div style="width:${pct}%; height:100%; background:${maxColor}; border-radius:4px;"></div>
+                    </div>
+                    <div style="font-size:12px; background:#161616; padding:3px 9px; border-radius:12px; border:1px solid #383838; display:inline-flex; align-items:center;">
+                        <span style="color:#999; margin-right:5px;">走向:</span>${flowBadges}
+                    </div>
                 </div>`;
     }
 
@@ -1496,6 +1710,40 @@
         document.getElementById('modal-dynamic-painTypes').innerHTML = (p.painTypes||[]).map(t => '<label><input type="checkbox" value="'+t+'" class="modal-painType-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-symptoms').innerHTML = (p.symptoms||[]).map(t => '<label><input type="checkbox" value="'+t+'" class="modal-symptom-check"><div class="btn-check">'+t+'</div></label>').join('');
         document.getElementById('modal-dynamic-meds').innerHTML = (p.meds||[]).map(m => '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>').join('');
+    };
+
+    // 1. 渲染頭痛設定頁的五大分類選項管理器
+    window.renderHeadachePrefsManager = function() {
+        var container = document.getElementById('headache-prefs-manager');
+        if(!container || !window.appLogic) return;
+        var p = window.appLogic.getPrefs();
+        var categories = [
+            { key: 'triggers', title: '⚡ 潛在誘因選項' },
+            { key: 'painTypes', title: '🤕 疼痛方式選項' },
+            { key: 'symptoms', title: '🤢 伴隨症狀選項' },
+            { key: 'contexts', title: '🏠 發作情境與狀態選項' },
+            { key: 'meds', title: '💊 常用藥物選項' }
+        ];
+
+        container.innerHTML = categories.map(cat => {
+            var items = p[cat.key] || [];
+            var tagsHtml = items.map((val, idx) => `
+                <div class="pref-tag-item">
+                    <span>${val}</span>
+                    <span class="icon-btn" title="修改名稱" onclick="appLogic.editPrefItem('${cat.key}', ${idx})">✏️</span>
+                    <span class="icon-btn" title="刪除選項" onclick="appLogic.deletePrefItem('${cat.key}', ${idx})">🗑️</span>
+                </div>
+            `).join('');
+
+            return `<div class="section">
+                <div class="section-title">${cat.title}</div>
+                <div class="pref-tag-box">${tagsHtml || '<span style="color:#777; font-size:13px;">尚無選項</span>'}</div>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="new-pref-${cat.key}" placeholder="輸入要新增的選項名稱..." style="flex:1; padding:9px 12px;">
+                    <button class="action-btn" style="background:var(--primary-color); border:none; padding:0 16px; font-weight:bold; white-space:nowrap;" onclick="appLogic.addPrefItem('${cat.key}')">➕ 新增</button>
+                </div>
+            </div>`;
+        }).join('');
     };
 
     window.startNewRecord = function() {
@@ -1603,6 +1851,7 @@
         if(tab === 'dashboard') { window.updateDashboard(); window.renderCalendar(); }
         if(tab === 'history') window.renderHistory();
         if(tab === 'charts') { window.updateDashboard(); window.renderCharts(); }
+        if(tab === 'settings') window.renderHeadachePrefsManager();
     };
 
     window.updateDashboard = function() {
@@ -1619,10 +1868,10 @@
         window.renderCalendar();
     };
 
-    // 計算生理期週期與預測
+    // 計算生理期週期、預測與倒數天數
     function analyzePeriodCycles() {
         var periods = window.appLogic ? [...window.appLogic.getPeriods()].sort() : [];
-        if(periods.length === 0) return { cycles: [], avgCycle: 28, avgDuration: 5, predictedDates: [], ovulationDates: [], nextStart: null };
+        if(periods.length === 0) return { cycles: [], avgCycle: 28, avgDuration: 5, predictedDates: [], ovulationDates: [], nextStart: null, daysUntilNext: null, currentDayOfPeriod: null };
         
         var groups = [];
         var curGroup = [periods[0]];
@@ -1657,8 +1906,20 @@
         var avgDuration = Math.round(cycles.slice(-6).reduce((a,b)=>a+b.duration, 0) / Math.min(cycles.length, 6)) || 5;
 
         var lastCycle = cycles[cycles.length - 1];
-        var nextStartDate = new Date(lastCycle.start);
+        var nextStartDate = new Date(lastCycle.start + 'T00:00:00');
         nextStartDate.setDate(nextStartDate.getDate() + avgCycle);
+        var nextStartStr = fmtDateStr(nextStartDate.getFullYear(), nextStartDate.getMonth(), nextStartDate.getDate());
+
+        var todayMidnight = new Date(getTodayStr() + 'T00:00:00');
+        var daysUntilNext = Math.round((nextStartDate - todayMidnight) / 86400000);
+
+        // 判斷今日是否處於最後一次經期中，以及是第幾天
+        var currentDayOfPeriod = null;
+        if(periods.includes(getTodayStr())) {
+            var lastStartMidnight = new Date(lastCycle.start + 'T00:00:00');
+            currentDayOfPeriod = Math.round((todayMidnight - lastStartMidnight) / 86400000) + 1;
+        }
+
         var predictedDates = [];
         for(var d=0; d<avgDuration; d++) {
             var pd = new Date(nextStartDate);
@@ -1681,7 +1942,9 @@
             avgDuration,
             predictedDates,
             ovulationDates,
-            nextStart: fmtDateStr(nextStartDate.getFullYear(), nextStartDate.getMonth(), nextStartDate.getDate())
+            nextStart: nextStartStr,
+            daysUntilNext,
+            currentDayOfPeriod
         };
     }
 
@@ -1778,7 +2041,7 @@
                     <div class="record-card-header">
                         <div>
                             <div style="font-weight:bold; color:var(--primary-color); font-size:15px;">🕒 ${timeOnly} 發作 ${changeCount > 0 ? `<span class="chip">🔄 ${changeCount}次變化</span>` : ''}</div>
-                            ${getPainBarHtml(r.pain)}
+                            ${getRecordPainEvolutionHtml(r)}
                             <div style="margin-top:6px;">
                                 ${makeChipsHtml(r.locs, 'loc')}
                                 ${makeChipsHtml(r.triggers, 'trig')}
@@ -1800,7 +2063,7 @@
         listEl.innerHTML = html;
     };
 
-    // ==================== 歷史紀錄 (收合式膠囊卡片 + 過濾器) ====================
+    // ==================== 歷史紀錄 (含痛覺變化走向顯示) ====================
     window.renderHistory = function() {
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         var listDiv = document.getElementById('records-list');
@@ -1851,7 +2114,7 @@
                 <div class="record-card-header">
                     <div style="flex-grow:1;">
                         <div class="record-time" style="font-size:16px;">${dateStr}</div>
-                        ${getPainBarHtml(r.pain)}
+                        ${getRecordPainEvolutionHtml(r)}
                         <div style="margin-top:8px;">
                             ${makeChipsHtml(r.locs, 'loc')}
                             ${makeChipsHtml(r.triggers, 'trig')}
@@ -1865,7 +2128,7 @@
                     </div>
                 </div>
                 <div class="expand-hint">
-                    <span>持續：${r.duration || '未確認'} ${changeCount > 0 ? `｜ 🔄 ${changeCount} 次轉移變化` : ''}</span>
+                    <span>持續：${r.duration || '未確認'} ${changeCount > 0 ? `｜ 🔄 共 ${changeCount} 次轉移變化` : ''}</span>
                     <span>點擊展開詳情 ▾</span>
                 </div>
                 <div class="record-card-body" onclick="event.stopPropagation();">
@@ -1894,7 +2157,7 @@
         }
     };
 
-    // ==================== 模組 2：生理期專業介面渲染 ====================
+    // ==================== 4 & 5. 生理期專業介面渲染 (倒數天數 + 雙模式編輯) ====================
     window.renderPeriodCalendar = function() {
         var grid = document.getElementById('period-grid');
         var monthYear = document.getElementById('period-month-year');
@@ -1906,13 +2169,30 @@
         var pAnalysis = analyzePeriodCycles();
         var bannerEl = document.getElementById('period-prediction-banner');
         if(bannerEl) {
-            var periods = window.appLogic ? window.appLogic.getPeriods() : [];
-            var isCurrentlyPeriod = periods.includes(todayStr);
-            var statusTitle = isCurrentlyPeriod ? `<span style="color:#f48fb1; font-size:20px; font-weight:bold;">🩸 今日處於生理期中</span>` :
-                (pAnalysis.nextStart ? `<span style="color:#fff; font-size:18px; font-weight:bold;">預計下次經期：<span style="color:#f48fb1;">${pAnalysis.nextStart}</span></span>` : `<span style="color:#aaa;">點擊下方日曆開始記錄生理期</span>`);
-            bannerEl.innerHTML = `${statusTitle}
-                <div style="font-size:13px; color:#ccc; margin-top:6px;">
-                    平均週期：<strong>${pAnalysis.avgCycle}</strong> 天 ｜ 平均行經：<strong>${pAnalysis.avgDuration}</strong> 天
+            var statusHtml = '';
+            if(pAnalysis.currentDayOfPeriod) {
+                statusHtml = `<div style="color:#f48fb1; font-size:21px; font-weight:bold;">🩸 目前為生理期第 ${pAnalysis.currentDayOfPeriod} 天</div>
+                              <div style="font-size:13px; color:#ccc; margin-top:4px;">預計下次經期：${pAnalysis.nextStart} (還有 ${pAnalysis.daysUntilNext} 天)</div>`;
+            } else if(pAnalysis.nextStart) {
+                var countdownBadge = '';
+                if(pAnalysis.daysUntilNext > 0) {
+                    countdownBadge = `<span style="background:var(--period-bg-color); color:#fff; padding:3px 10px; border-radius:15px; font-size:15px; margin-left:8px;">還有 ${pAnalysis.daysUntilNext} 天</span>`;
+                } else if(pAnalysis.daysUntilNext === 0) {
+                    countdownBadge = `<span style="background:#e53935; color:#fff; padding:3px 10px; border-radius:15px; font-size:15px; margin-left:8px;">預計今日來潮</span>`;
+                } else {
+                    countdownBadge = `<span style="background:#ff9800; color:#121212; padding:3px 10px; border-radius:15px; font-size:14px; font-weight:bold; margin-left:8px;">已延遲 ${Math.abs(pAnalysis.daysUntilNext)} 天</span>`;
+                }
+                statusHtml = `<div style="color:#fff; font-size:18px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px;">
+                                <span>預計下次經期：<span style="color:#f48fb1;">${pAnalysis.nextStart}</span></span>
+                                ${countdownBadge}
+                              </div>`;
+            } else {
+                statusHtml = `<div style="color:#aaa; font-size:15px;">尚無經期紀錄，請使用下方區間設定或點擊月曆開始紀錄</div>`;
+            }
+
+            bannerEl.innerHTML = `${statusHtml}
+                <div style="font-size:13px; color:#aaa; margin-top:8px;">
+                    平均週期：<strong style="color:#eee;">${pAnalysis.avgCycle}</strong> 天 ｜ 平均行經：<strong style="color:#eee;">${pAnalysis.avgDuration}</strong> 天
                 </div>`;
         }
 
@@ -1940,36 +2220,50 @@
             if(isPeriod) cellClass += ' period-filled';
             else if(isPred) cellClass += ' period-predicted';
             else if(isOvu) cellClass += ' ovulation-day';
-            if(isSelected) cellClass += ' selected-day';
+            if(window.isPeriodGridEditMode) cellClass += ' editable-pulse';
+            if(isSelected && !window.isPeriodGridEditMode) cellClass += ' selected-day';
 
             var dateNumHtml = (isToday && !isPeriod) ? `<div class="today-highlight">${i}</div>` : `<div>${i}</div>`;
             var subDot = (pDetails[dateStr] && pDetails[dateStr].cramp && pDetails[dateStr].cramp !== '無') ? `<div style="font-size:10px; line-height:1;">⚡</div>` : '';
-            html += `<div class="${cellClass}" onclick="window.selectPeriodDate('${dateStr}')">${dateNumHtml}${subDot}</div>`;
+            html += `<div class="${cellClass}" onclick="window.handlePeriodCellClick('${dateStr}')">${dateNumHtml}${subDot}</div>`;
         }
         grid.innerHTML = html;
         window.loadPeriodDayForm(window.selectedPeriodDateStr);
     };
 
-    window.selectPeriodDate = function(dateStr) {
+    window.handlePeriodCellClick = function(dateStr) {
         window.selectedPeriodDateStr = dateStr;
+        if(window.isPeriodGridEditMode) {
+            // 在快速圈選模式下，點擊直接切換該日是否為生理期
+            var periods = window.appLogic.getPeriods();
+            var idx = periods.indexOf(dateStr);
+            if(idx > -1) periods.splice(idx, 1);
+            else periods.push(dateStr);
+        }
         window.renderPeriodCalendar();
     };
 
-    window.togglePeriodDayForm = function(checked) {
-        document.getElementById('period-detail-form').style.display = checked ? 'block' : 'none';
-        if(!checked) {
-            window.appLogic.savePeriodDayDetail();
-        }
-    };
-
     window.loadPeriodDayForm = function(dateStr) {
-        document.getElementById('period-selected-date-label').innerText = `🩸 ${dateStr} 生理期詳情`;
+        document.getElementById('period-selected-date-label').innerText = `🩸 ${dateStr} 經期狀態與症狀`;
         var periods = window.appLogic ? window.appLogic.getPeriods() : [];
         var pDetails = window.appLogic ? window.appLogic.getPeriodDetails() : {};
         var isPeriod = periods.includes(dateStr);
 
-        document.getElementById('period-active-toggle').checked = isPeriod;
-        document.getElementById('period-detail-form').style.display = isPeriod ? 'block' : 'none';
+        var toggleBtn = document.getElementById('period-single-toggle-btn');
+        var emptyHint = document.getElementById('period-detail-empty-hint');
+        var detailForm = document.getElementById('period-detail-form');
+
+        if(isPeriod) {
+            toggleBtn.innerHTML = '🗑️ 取消此日生理期標記';
+            toggleBtn.style.background = '#444';
+            emptyHint.style.display = 'none';
+            detailForm.style.display = 'block';
+        } else {
+            toggleBtn.innerHTML = '➕ 將此日標記為生理期';
+            toggleBtn.style.background = 'var(--period-bg-color)';
+            emptyHint.style.display = 'block';
+            detailForm.style.display = 'none';
+        }
 
         document.querySelectorAll('#period-detail-form input[type="radio"], #period-detail-form input[type="checkbox"]').forEach(e => e.checked = false);
         document.getElementById('p-memo').value = '';
@@ -1997,11 +2291,11 @@
             return;
         }
         var html = '';
-        [...pAnalysis.cycles].reverse().forEach((c, idx) => {
+        [...pAnalysis.cycles].reverse().forEach((c) => {
             html += `<div class="record-card">
                 <div style="font-weight:bold; color:#f48fb1; font-size:16px;">🩸 ${c.start} ～ ${c.end}</div>
                 <div style="font-size:14px; color:#ddd; margin-top:6px;">
-                    行經天數：<strong>${c.duration}</strong> 天 ｜ 距離下次週期：<strong>${c.cycleLen ? c.cycleLen + ' 天' : '最新週期計算中'}</strong>
+                    行經天數：<strong>${c.duration}</strong> 天 ｜ 週期長度：<strong>${c.cycleLen ? c.cycleLen + ' 天' : '最新週期進行中'}</strong>
                 </div>
             </div>`;
         });
@@ -2048,7 +2342,12 @@
         document.getElementById('period-symp-bars').innerHTML = sorted.length ? sorted.map(s => makeBarHtml(s[0], s[1], maxVal, 'pain-4')).join('') : '<div style="color:#888;">尚無詳細伴隨症狀紀錄</div>';
     };
 
-    // ==================== Chart.js 頭痛與跨模組關聯曲線圖 ====================
+    // ==================== 3. Chart.js 頭痛與跨模組關聯曲線圖 (含美觀月份切換器) ====================
+    window.changeChartMonth = function(offset) {
+        chartCalDate.setMonth(chartCalDate.getMonth() + offset);
+        window.renderCharts();
+    };
+
     function makeBarHtml(label, count, maxCount, colorClass) {
         var pct = maxCount === 0 ? 0 : Math.round((count/maxCount)*100);
         return `<div style="display:flex; align-items:center; margin-bottom:10px; font-size:14px;">
@@ -2066,9 +2365,11 @@
         var modules = window.appLogic ? window.appLogic.getModules() : {};
 
         // 1. 當月每日最高痛覺 vs 生理期疊合曲線圖
-        var mpEl = document.getElementById('chart-month-picker');
-        var ym = (mpEl && mpEl.value) ? mpEl.value : getTodayStr().slice(0, 7);
-        var [yr, mo] = ym.split('-').map(Number);
+        var yr = chartCalDate.getFullYear();
+        var mo = chartCalDate.getMonth() + 1;
+        var labelEl = document.getElementById('chart-month-label');
+        if(labelEl) labelEl.innerText = `${yr} 年 ${mo} 月`;
+
         var daysInM = new Date(yr, mo, 0).getDate();
         var dailyLabels = [];
         var dailyPainData = [];
@@ -2173,6 +2474,7 @@
             if(hrs !== null && !isNaN(hrs)) {
                 var key = hrs <= 5 ? '5h以下' : (hrs === 6 ? '6h' : (hrs === 7 ? '7h' : (hrs === 8 ? '8h' : '9h以上')));
                 var mp = parseInt((r.pain||'').charAt(0))||1;
+                if(r.changes) r.changes.forEach(c => { var cp = parseInt((c.pain||'').charAt(0))||1; if(cp>mp) mp=cp; });
                 sleepBuckets[key].cnt++;
                 sleepBuckets[key].sumP += mp;
             }
@@ -2190,7 +2492,7 @@
                     labels: sLabels,
                     datasets: [
                         { type: 'bar', label: '頭痛發作次數', data: sCounts, backgroundColor: 'rgba(79,139,201,0.6)', yAxisID: 'y' },
-                        { type: 'line', label: '平均痛覺等級', data: sAvgP, borderColor: '#e53935', backgroundColor: '#e53935', tension: 0.3, yAxisID: 'y1' }
+                        { type: 'line', label: '平均最高痛覺', data: sAvgP, borderColor: '#e53935', backgroundColor: '#e53935', tension: 0.3, yAxisID: 'y1' }
                     ]
                 },
                 options: {
