@@ -1,0 +1,160 @@
+:root { 
+    --bg-color: #121212; --surface-color: #1e1e1e; --surface-light: #2a2a2a; --text-color: #e0e0e0; 
+    --primary-color: #4f8bc9; --border-color: #333; --danger-color: #cf6679; --success-color: #4caf50;
+    --timeline-color: #4f8bc988; 
+    --period-color: #d81b60; --period-bg-color: #9a505e; --ovulation-color: #ab47bc;
+}
+body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-top: 60px; padding-bottom: 85px; }
+* { box-sizing: border-box; }
+h2, h3, h4 { color: #fff; margin-top: 0; margin-bottom: 12px; }
+.container { padding: 15px; max-width: 650px; margin: 0 auto; }
+
+/* 頂部固定導覽列與漢堡選單 */
+.top-bar { position: fixed; top: 0; left: 0; width: 100%; height: 56px; background: var(--surface-color); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 200; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.top-bar-left { display: flex; align-items: center; gap: 12px; }
+.menu-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px; line-height: 1; }
+.app-title { font-size: 18px; font-weight: bold; color: #fff; }
+
+/* 左側抽屜選單 (Sidebar) */
+.sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 300; display: none; opacity: 0; transition: opacity 0.25s; }
+.sidebar-overlay.open { display: block; opacity: 1; }
+.sidebar { position: fixed; top: 0; left: -290px; width: 280px; height: 100%; background: var(--surface-color); z-index: 301; transition: left 0.25s ease; overflow-y: auto; border-right: 1px solid var(--border-color); padding-bottom: 40px; }
+.sidebar.open { left: 0; }
+.sidebar-header { padding: 18px 15px; font-size: 18px; font-weight: bold; color: #fff; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.sidebar-group-title { padding: 14px 15px 6px; font-size: 12px; color: #888; font-weight: bold; letter-spacing: 1px; }
+.sidebar-item { padding: 13px 18px; display: flex; align-items: center; gap: 12px; color: var(--text-color); font-size: 15px; cursor: pointer; border-left: 4px solid transparent; transition: 0.15s; }
+.sidebar-item:hover { background: rgba(255,255,255,0.04); }
+.sidebar-item.active { background: rgba(79,139,201,0.15); color: var(--primary-color); border-left-color: var(--primary-color); font-weight: bold; }
+
+/* 底部導覽列 */
+.nav { display: flex; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 100; }
+.nav button { flex: 1; padding: 14px 2px; background: none; border: none; color: var(--text-color); font-size: 14px; cursor: pointer; }
+.nav button.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); font-weight: bold; }
+
+.module-view { display: none; }
+.module-view.active { display: block; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* 通用區塊與表單元件 */
+.section { background: var(--surface-color); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #282828; }
+.section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+input[type="datetime-local"], input[type="date"], input[type="time"], input[type="text"], input[type="number"], textarea, select { 
+    width: 100%; padding: 11px 12px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; font-size: 15px; 
+}
+textarea { resize: vertical; min-height: 75px; }
+.form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.form-row > div { flex: 1; }
+.form-label { font-size: 13px; color: #aaa; margin-bottom: 4px; display: block; }
+
+.btn-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-check { padding: 10px 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 14px; cursor: pointer; user-select: none; flex-grow: 1; text-align: center; line-height: 1.3; transition: 0.15s; }
+.pain-scale { display: flex; flex-direction: column; gap: 8px; }
+.pain-scale .btn-check { text-align: left; }
+input[type="checkbox"], input[type="radio"] { display: none; }
+input[type="checkbox"]:checked + .btn-check, input[type="radio"]:checked + .btn-check { background: var(--primary-color); color: #fff; border-color: var(--primary-color); font-weight: bold; }
+
+.matrix-header { text-align: center; font-weight: bold; color: #888; }
+.save-btn { width: 100%; padding: 14px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-size: 17px; font-weight: bold; margin-top: 8px; cursor: pointer; }
+.big-add-btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; width: 100%; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(79,139,201,0.3); margin-bottom: 15px; }
+.action-btn { background: #383838; color: #fff; border: 1px solid #484848; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.action-btn:active { opacity: 0.8; }
+.equal-action-btn { min-width: 72px; padding: 6px 10px; font-size: 13px; font-weight: bold; }
+
+/* 歷史紀錄篩選膠囊列 */
+.filter-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; }
+.filter-pill { flex: 1; text-align: center; padding: 8px 6px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 20px; color: #aaa; font-size: 13px; cursor: pointer; white-space: nowrap; user-select: none; transition: 0.15s; }
+.filter-pill:hover { border-color: #666; color: #fff; }
+.filter-pill.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); font-weight: bold; }
+
+/* 膠囊標籤 (Chips) */
+.chips-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; width: 100%; align-items: center; }
+.chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 12px; background: #2c2c2c; color: #ddd; border: 1px solid #444; white-space: nowrap; }
+.chip.loc { background: rgba(79,139,201,0.18); border-color: #4f8bc9; color: #90caf9; }
+.chip.trig { background: rgba(255,152,0,0.15); border-color: #ff9800; color: #ffcc80; }
+.chip.med { background: rgba(76,175,80,0.15); border-color: #4caf50; color: #a5d6a7; }
+.chip.period { background: rgba(216,27,96,0.2); border-color: #d81b60; color: #f48fb1; }
+
+/* 設定頁自訂標籤管理列表 */
+.pref-tag-box { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.pref-tag-item { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-color); border: 1px solid #444; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: #eee; }
+.pref-tag-item span.icon-btn { cursor: pointer; font-size: 13px; opacity: 0.75; padding: 2px; }
+.pref-tag-item span.icon-btn:hover { opacity: 1; }
+
+.record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 14px; border-radius: 10px; margin-bottom: 12px; transition: 0.25s; cursor: pointer; }
+.record-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; }
+.record-card-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); cursor: default; }
+.record-card.expanded .record-card-body { display: block; }
+
+/* 展開詳情按鈕與狀態文字切換 */
+.expand-hint { font-size: 13px; color: #999; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+.expand-toggle-btn { background: #262626; border: 1px solid #444; color: #ccc; padding: 4px 11px; border-radius: 15px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; user-select: none; }
+.record-card:hover .expand-toggle-btn { border-color: var(--primary-color); color: #fff; }
+.record-card .text-collapse { display: none; }
+.record-card.expanded .text-expand { display: none; }
+.record-card.expanded .text-collapse { display: inline; color: var(--primary-color); font-weight: bold; }
+.record-card.expanded .expand-toggle-btn { border-color: var(--primary-color); background: rgba(79,139,201,0.12); }
+
+/* 展開後的主紀錄文字大小與日期標題 (16px) 一致 */
+.record-detail { font-size: 16px; margin-bottom: 6px; color: #ddd; line-height: 1.5; }
+
+.timeline { margin-top: 10px; padding-left: 15px; border-left: 2px dashed var(--timeline-color); }
+.timeline-item { margin-bottom: 10px; position: relative; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 13px; color: #ddd; }
+.timeline-item::before { content: ''; position: absolute; left: -21px; top: 12px; width: 10px; height: 10px; background: var(--primary-color); border-radius: 50%; }
+
+.ghost-add-btn { width: 100%; padding: 10px; background: rgba(79, 139, 201, 0.05); border: 1px dashed var(--primary-color); color: var(--primary-color); border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+@keyframes highlight-glow {
+    0% { border-color: var(--primary-color); box-shadow: 0 0 18px var(--primary-color); background-color: rgba(79, 139, 201, 0.15); }
+    100% { border-color: var(--border-color); box-shadow: none; background-color: var(--surface-color); }
+}
+.highlight-card { animation: highlight-glow 2.5s ease-out forwards; }
+
+/* 月曆樣式與互動選取 */
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 17px; font-weight: bold; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+.cal-day-name { font-weight: bold; color: #888; font-size: 13px; margin-bottom: 4px; }
+.cal-cell { height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-color); border-radius: 6px; border: 1px solid var(--border-color); font-size: 13px; position: relative; cursor: pointer; transition: 0.15s; user-select: none; }
+.cal-cell:hover { border-color: #777; }
+.cal-cell.selected-day { border: 2px solid var(--primary-color) !important; background: rgba(79,139,201,0.18); }
+.today-highlight { background-color: #555; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; font-weight: bold; }
+
+.period-border { border: 2px solid var(--period-bg-color) !important; }
+.period-filled { background: rgba(154, 80, 94, 0.55) !important; color: #fff; border-color: var(--period-bg-color) !important; font-weight: bold; }
+.period-predicted { border: 1px dashed var(--period-bg-color) !important; }
+.ovulation-day { border: 1px dashed var(--ovulation-color) !important; }
+.editable-pulse { border-color: #f48fb1; }
+
+.dots-wrapper { display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%; padding: 0 2px; }
+.cal-dot { width: 7px; height: 7px; border-radius: 50%; }
+.pain-1 { background-color: #fbc02d; }
+.pain-2 { background-color: #ff9800; }
+.pain-3 { background-color: #f57c00; }
+.pain-4 { background-color: #e53935; }
+.pain-5 { background-color: #8e24aa; }
+.pain-fill { background-color: var(--primary-color); }
+
+/* 圖表月份與年份選擇器 */
+.month-stepper { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 4px 6px; border-radius: 8px; }
+.month-stepper button { background: #333; color: #fff; border: none; padding: 4px 9px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
+.month-stepper button:active { background: var(--primary-color); }
+.month-stepper span { font-size: 13px; font-weight: bold; color: var(--primary-color); min-width: 85px; text-align: center; }
+
+/* 圖表容器 */
+.chart-box { position: relative; width: 100%; height: 250px; margin-top: 10px; }
+
+/* 雙懸浮按鈕 */
+.fab-container { position: fixed; bottom: 75px; right: 20px; display: none; gap: 10px; z-index: 95; transition: opacity 0.3s ease, transform 0.3s ease; }
+.fab-btn { border: none; border-radius: 30px; padding: 11px 18px; font-size: 15px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; color: #fff; display: flex; align-items: center; gap: 5px; }
+.fab-btn.cancel { background: #555; }
+.fab-btn.save { background: var(--primary-color); }
+.fab-container.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
+
+/* 快速加水/咖啡按鈕 */
+.quick-drink-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+.drink-card-btn { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; color: #fff; text-align: center; cursor: pointer; transition: 0.15s; }
+.drink-card-btn:active { transform: scale(0.97); background: #262626; }
+
+#login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#main-app { display: none; }
