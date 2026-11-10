@@ -69,8 +69,15 @@
     .matrix-header { text-align: center; font-weight: bold; color: #888; }
     .save-btn { width: 100%; padding: 14px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-size: 17px; font-weight: bold; margin-top: 8px; cursor: pointer; }
     .big-add-btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; width: 100%; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(79,139,201,0.3); margin-bottom: 15px; }
-    .action-btn { background: #383838; color: #fff; border: 1px solid #484848; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .action-btn { background: #383838; color: #fff; border: 1px solid #484848; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
     .action-btn:active { opacity: 0.8; }
+    .equal-action-btn { min-width: 72px; padding: 7px 10px; font-size: 13px; font-weight: bold; }
+
+    /* 歷史紀錄篩選膠囊列 (取代原本不美觀的下拉選單) */
+    .filter-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; }
+    .filter-pill { flex: 1; text-align: center; padding: 8px 6px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 20px; color: #aaa; font-size: 13px; cursor: pointer; white-space: nowrap; user-select: none; transition: 0.15s; }
+    .filter-pill:hover { border-color: #666; color: #fff; }
+    .filter-pill.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); font-weight: bold; }
 
     /* 膠囊標籤 (Chips) 與收合卡片 */
     .chip { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 12px; margin-right: 5px; margin-bottom: 5px; background: #2c2c2c; color: #ddd; border: 1px solid #444; }
@@ -85,11 +92,22 @@
     .pref-tag-item span.icon-btn { cursor: pointer; font-size: 13px; opacity: 0.75; padding: 2px; }
     .pref-tag-item span.icon-btn:hover { opacity: 1; }
 
-    .record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 14px; border-radius: 10px; margin-bottom: 12px; transition: 0.25s; }
-    .record-card-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
-    .record-card-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); }
+    .record-card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 14px; border-radius: 10px; margin-bottom: 12px; transition: 0.25s; cursor: pointer; }
+    .record-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .record-card-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); cursor: default; }
     .record-card.expanded .record-card-body { display: block; }
-    .expand-hint { font-size: 12px; color: #888; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* 展開詳情按鈕與狀態文字切換 */
+    .expand-hint { font-size: 13px; color: #999; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .expand-toggle-btn { background: #262626; border: 1px solid #444; color: #ccc; padding: 4px 11px; border-radius: 15px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; user-select: none; }
+    .record-card:hover .expand-toggle-btn { border-color: var(--primary-color); color: #fff; }
+    .record-card .text-collapse { display: none; }
+    .record-card.expanded .text-expand { display: none; }
+    .record-card.expanded .text-collapse { display: inline; color: var(--primary-color); font-weight: bold; }
+    .record-card.expanded .expand-toggle-btn { border-color: var(--primary-color); background: rgba(79,139,201,0.12); }
+
+    /* 展開後的主紀錄文字大小調整為與日期標題 (16px) 一致 */
+    .record-detail { font-size: 16px; margin-bottom: 6px; color: #ddd; line-height: 1.5; }
 
     .timeline { margin-top: 10px; padding-left: 15px; border-left: 2px dashed var(--timeline-color); }
     .timeline-item { margin-bottom: 10px; position: relative; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 13px; color: #ddd; }
@@ -127,7 +145,7 @@
     .pain-5 { background-color: #8e24aa; }
     .pain-fill { background-color: var(--primary-color); }
 
-    /* 圖表月份選擇器 (與月曆風格一致) */
+    /* 圖表月份與年份選擇器 (與月曆風格一致) */
     .month-stepper { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 4px 6px; border-radius: 8px; }
     .month-stepper button { background: #333; color: #fff; border: none; padding: 4px 9px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
     .month-stepper button:active { background: var(--primary-color); }
@@ -237,7 +255,7 @@
                 <div class="section" id="day-preview-box">
                     <div class="section-title">
                         <span id="selected-date-title">📅 當日紀錄預覽</span>
-                        <button class="action-btn" style="background:var(--primary-color); border:none;" onclick="startNewRecordForSelectedDate()">➕ 補登此日</button>
+                        <button class="action-btn" id="btn-add-selected-date" style="background:var(--primary-color); border:none; font-weight:bold;" onclick="startNewRecordForSelectedDate()">➕ 補登此日</button>
                     </div>
                     <div id="selected-date-list"></div>
                 </div>
@@ -423,25 +441,22 @@
                 <button class="save-btn" id="save-anchor-change" onclick="appLogic.saveChange()">💾 儲存變化</button>
             </div>
 
-            <!-- 4. 歷史紀錄 (支援篩選與痛覺變化走向顯示) -->
+            <!-- 4. 歷史紀錄 (支援膠囊篩選、痛覺變化走向、動態展開按鈕) -->
             <div id="tab-history" class="tab-content">
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h2 style="margin: 0;">📖 歷史紀錄</h2>
                     <button class="action-btn" style="background: #388e3c; border:none;" onclick="window.exportCSV()">📄 匯出 CSV</button>
                 </div>
                 <div class="section" style="padding: 12px;">
-                    <div class="form-row" style="margin-bottom:0;">
-                        <div>
-                            <select id="history-filter-pain" onchange="window.renderHistory()">
-                                <option value="all">全部痛覺等級</option>
-                                <option value="3">Lv.3 以上 (中重度)</option>
-                                <option value="4">Lv.4 以上 (重度)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <input type="text" id="history-filter-keyword" placeholder="搜尋部位/誘因/用藥..." oninput="window.renderHistory()">
-                        </div>
+                    <div class="filter-pills" id="history-pain-pills">
+                        <div class="filter-pill active" onclick="window.setHistoryPainFilter('all', this)">全部等級</div>
+                        <div class="filter-pill" onclick="window.setHistoryPainFilter('1', this)">Lv.1</div>
+                        <div class="filter-pill" onclick="window.setHistoryPainFilter('2', this)">Lv.2</div>
+                        <div class="filter-pill" onclick="window.setHistoryPainFilter('3', this)">Lv.3</div>
+                        <div class="filter-pill" onclick="window.setHistoryPainFilter('4', this)">Lv.4</div>
+                        <div class="filter-pill" onclick="window.setHistoryPainFilter('5', this)">Lv.5</div>
                     </div>
+                    <input type="text" id="history-filter-keyword" placeholder="🔍 搜尋部位 / 誘因 / 症狀 / 用藥 / 備註..." oninput="window.renderHistory()">
                 </div>
                 <div id="records-list"></div>
             </div>
@@ -468,7 +483,14 @@
                 </div>
 
                 <div class="section">
-                    <div class="section-title">📉 近 6 個月發作次數與平均痛覺雙軸曲線</div>
+                    <div class="section-title">
+                        <span>📉 年度每月發作次數與平均痛覺曲線</span>
+                        <div class="month-stepper">
+                            <button onclick="window.changeChartYear(-1)">◀</button>
+                            <span id="chart-year-label">...</span>
+                            <button onclick="window.changeChartYear(1)">▶</button>
+                        </div>
+                    </div>
                     <div class="chart-box"><canvas id="chartMonthlyTrend"></canvas></div>
                 </div>
 
@@ -937,7 +959,6 @@
     };
     let globalPrefs = JSON.parse(JSON.stringify(LATEST_DEFAULT_PREFS));
 
-    // 擴充模組資料庫結構
     let globalModules = {
         gi: [],
         sleep: [],
@@ -1037,7 +1058,6 @@
         getPeriodDetails: () => globalPeriodDetails,
         getModules: () => globalModules,
 
-        // ==================== 1. 頭痛設定頁：五大項目新增、修改、刪除 ====================
         addPrefItem: (categoryKey) => {
             var inputEl = document.getElementById('new-pref-' + categoryKey);
             if(!inputEl) return;
@@ -1062,7 +1082,6 @@
 
             globalPrefs[categoryKey][index] = newVal;
 
-            // 同步更新歷史紀錄與變化紀錄中的同名標籤
             var recField = PREF_RECORD_FIELD_MAP[categoryKey];
             if(recField) {
                 globalRecords.forEach(r => {
@@ -1094,7 +1113,6 @@
             window.showToast("已刪除選項：" + targetVal);
         },
 
-        // ==================== 5. 生理期紀錄：區間批次設定、快速點選模式、單日詳情 ====================
         togglePeriodGridEditMode: () => {
             window.isPeriodGridEditMode = !window.isPeriodGridEditMode;
             var btn = document.getElementById('period-grid-edit-btn');
@@ -1188,7 +1206,6 @@
             window.renderPeriodCalendar();
         },
 
-        // 頭痛紀錄儲存邏輯
         savePrefs: (newCtx, newT, newP, newS, newM) => {
             if(newCtx && !globalPrefs.contexts.includes(newCtx)) globalPrefs.contexts.push(newCtx);
             if(newT && !globalPrefs.triggers.includes(newT)) globalPrefs.triggers.push(newT);
@@ -1341,7 +1358,7 @@
             window.switchTab('history');
         },
 
-        // ==================== 擴充模組 A & B 儲存邏輯 ====================
+        // 擴充模組 A & B 儲存邏輯
         saveModuleItem: (modName) => {
             var id = Date.now();
             if(modName === 'gi') {
@@ -1482,9 +1499,11 @@
     var currentModule = 'headache';
     var currentCalDate = new Date();
     var chartCalDate = new Date();
+    var chartTrendYear = new Date().getFullYear();
     window.periodCalDate = new Date();
     window.selectedCalDateStr = '';
     window.selectedPeriodDateStr = '';
+    window.currentHistoryPainFilter = 'all';
     var chartInstances = {};
 
     function getLocalIsoStr(dateObj) {
@@ -1513,7 +1532,7 @@
         var sVal = document.getElementById('period-range-start').value;
         if(!sVal) return;
         var d = new Date(sVal);
-        d.setDate(d.getDate() + 4); // 預設 5 天經期
+        d.setDate(d.getDate() + 4);
         document.getElementById('period-range-end').value = fmtDateStr(d.getFullYear(), d.getMonth(), d.getDate());
     };
 
@@ -1558,7 +1577,6 @@
             window.handleBottomNav('dashboard');
         } else if(modName === 'period') {
             bottomNav.style.display = 'flex';
-            // 生理期模組不硬湊設定頁，直接隱藏底部設定按鈕
             if(navSettingsBtn) navSettingsBtn.style.display = 'none';
             window.handleBottomNav('dashboard');
         } else {
@@ -1640,7 +1658,6 @@
         return `${yyyy}-${mm}-${dd} (${day}) ${hh}:${min}`;
     }
 
-    // 單一痛覺條 (用於變化時間軸子項目)
     function getPainBarHtml(painStr) {
         var val = parseInt((painStr||'').charAt(0)) || 1;
         var emojis = ['😐', '🙁', '😣', '😫', '🤯'];
@@ -1657,7 +1674,6 @@
                 </div>`;
     }
 
-    // 2. 主紀錄痛覺與變化走向呈現 (如：最高 Lv.4，並顯示 Lv.1 ➔ Lv.2 ➔ Lv.4)
     function getRecordPainEvolutionHtml(r) {
         var emojis = ['😐', '🙁', '😣', '😫', '🤯'];
         var colors = ['#fbc02d', '#ff9800', '#f57c00', '#e53935', '#8e24aa'];
@@ -1712,7 +1728,6 @@
         document.getElementById('modal-dynamic-meds').innerHTML = (p.meds||[]).map(m => '<label><input type="checkbox" value="'+m+'" class="modal-med-check"><div class="btn-check">'+m+'</div></label>').join('');
     };
 
-    // 1. 渲染頭痛設定頁的五大分類選項管理器
     window.renderHeadachePrefsManager = function() {
         var container = document.getElementById('headache-prefs-manager');
         if(!container || !window.appLogic) return;
@@ -1868,7 +1883,6 @@
         window.renderCalendar();
     };
 
-    // 計算生理期週期、預測與倒數天數
     function analyzePeriodCycles() {
         var periods = window.appLogic ? [...window.appLogic.getPeriods()].sort() : [];
         if(periods.length === 0) return { cycles: [], avgCycle: 28, avgDuration: 5, predictedDates: [], ovulationDates: [], nextStart: null, daysUntilNext: null, currentDayOfPeriod: null };
@@ -1913,7 +1927,6 @@
         var todayMidnight = new Date(getTodayStr() + 'T00:00:00');
         var daysUntilNext = Math.round((nextStartDate - todayMidnight) / 86400000);
 
-        // 判斷今日是否處於最後一次經期中，以及是第幾天
         var currentDayOfPeriod = null;
         if(periods.includes(getTodayStr())) {
             var lastStartMidnight = new Date(lastCycle.start + 'T00:00:00');
@@ -2011,9 +2024,11 @@
         window.renderCalendar();
     };
 
+    // 1. 首頁點擊日期預覽：有紀錄時隱藏「補登此日」，並將「➕ 變化」與「✏️ 編輯」改為一致大小與格式
     window.renderSelectedDatePreview = function(dateStr) {
         var titleEl = document.getElementById('selected-date-title');
         var listEl = document.getElementById('selected-date-list');
+        var addBtnEl = document.getElementById('btn-add-selected-date');
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         var periods = window.appLogic ? window.appLogic.getPeriods() : [];
         var pDetails = window.appLogic ? window.appLogic.getPeriodDetails() : {};
@@ -2022,8 +2037,13 @@
         titleEl.innerHTML = `📅 ${dateStr} 紀錄 ${isPeriod ? '<span class="chip period" style="margin-left:6px;">🩸 生理期</span>' : ''}`;
 
         var dayRecs = records.filter(r => r.time && r.time.startsWith(dateStr));
-        var html = '';
+        
+        // 若該日已有頭痛紀錄，隱藏右上角「補登此日」按鈕
+        if(addBtnEl) {
+            addBtnEl.style.display = (dayRecs.length > 0) ? 'none' : 'inline-flex';
+        }
 
+        var html = '';
         if(isPeriod && pDetails[dateStr]) {
             var pd = pDetails[dateStr];
             html += `<div style="background:rgba(154,80,94,0.15); border:1px solid var(--period-bg-color); padding:10px; border-radius:8px; margin-bottom:10px; font-size:13px;">
@@ -2039,8 +2059,8 @@
                 var changeCount = (r.changes && r.changes.length) ? r.changes.length : 0;
                 html += `<div class="record-card" style="margin-bottom:8px; padding:12px;" onclick="this.classList.toggle('expanded')">
                     <div class="record-card-header">
-                        <div>
-                            <div style="font-weight:bold; color:var(--primary-color); font-size:15px;">🕒 ${timeOnly} 發作 ${changeCount > 0 ? `<span class="chip">🔄 ${changeCount}次變化</span>` : ''}</div>
+                        <div style="flex-grow:1;">
+                            <div style="font-weight:bold; color:var(--primary-color); font-size:16px;">🕒 ${timeOnly} 發作 ${changeCount > 0 ? `<span class="chip">🔄 ${changeCount}次變化</span>` : ''}</div>
                             ${getRecordPainEvolutionHtml(r)}
                             <div style="margin-top:6px;">
                                 ${makeChipsHtml(r.locs, 'loc')}
@@ -2048,12 +2068,19 @@
                                 ${makeChipsHtml(r.meds, 'med')}
                             </div>
                         </div>
-                        <div style="white-space:nowrap;" onclick="event.stopPropagation();">
-                            <button class="action-btn" onclick="openChangeTab(${r.id})">➕變化</button>
-                            <button class="action-btn" onclick="editRecord(${r.id})">✏️</button>
+                        <div style="display:flex; gap:6px; white-space:nowrap; padding-left:8px;" onclick="event.stopPropagation();">
+                            <button class="action-btn equal-action-btn" onclick="openChangeTab(${r.id})">➕ 變化</button>
+                            <button class="action-btn equal-action-btn" onclick="editRecord(${r.id})">✏️ 編輯</button>
                         </div>
                     </div>
-                    <div class="record-card-body">
+                    <div class="expand-hint">
+                        <span>持續：${r.duration || '未確認'}</span>
+                        <span class="expand-toggle-btn">
+                            <span class="text-expand">▾ 點擊展開詳情</span>
+                            <span class="text-collapse">▴ 收合詳情</span>
+                        </span>
+                    </div>
+                    <div class="record-card-body" onclick="event.stopPropagation();">
                         <div class="record-detail"><strong>持續時間：</strong>${r.duration || '未確認'} ｜ <strong>藥效：</strong>${r.effect || '無'}</div>
                         ${r.memo ? `<div class="record-detail"><strong>備註：</strong>${r.memo}</div>` : ''}
                     </div>
@@ -2063,19 +2090,28 @@
         listEl.innerHTML = html;
     };
 
-    // ==================== 歷史紀錄 (含痛覺變化走向顯示) ====================
+    // ==================== 2 & 3. 歷史紀錄 (膠囊過濾器 + 展開狀態切換 + 16px 詳細資訊) ====================
+    window.setHistoryPainFilter = function(val, pillEl) {
+        window.currentHistoryPainFilter = val;
+        document.querySelectorAll('#history-pain-pills .filter-pill').forEach(el => el.classList.remove('active'));
+        if(pillEl) pillEl.classList.add('active');
+        window.renderHistory();
+    };
+
     window.renderHistory = function() {
         var records = window.appLogic ? window.appLogic.getRecords() : [];
         var listDiv = document.getElementById('records-list');
         if(records.length === 0) { listDiv.innerHTML = "<p>尚無紀錄。</p>"; return; }
 
-        var painFilter = document.getElementById('history-filter-pain') ? document.getElementById('history-filter-pain').value : 'all';
+        var painFilter = window.currentHistoryPainFilter || 'all';
         var kw = document.getElementById('history-filter-keyword') ? document.getElementById('history-filter-keyword').value.trim().toLowerCase() : '';
 
         var filtered = records.filter(r => {
-            var maxP = parseInt((r.pain||'').charAt(0)) || 1;
-            if(r.changes) r.changes.forEach(c => { var cp = parseInt((c.pain||'').charAt(0))||1; if(cp > maxP) maxP = cp; });
-            if(painFilter !== 'all' && maxP < parseInt(painFilter)) return false;
+            var levels = [parseInt((r.pain||'').charAt(0)) || 1];
+            if(r.changes) r.changes.forEach(c => levels.push(parseInt((c.pain||'').charAt(0))||1));
+            var maxP = Math.max(...levels);
+            // 點選特定 Lv 時，只要該筆紀錄最高痛覺或過程中包含該等級即顯示
+            if(painFilter !== 'all' && maxP !== parseInt(painFilter) && !levels.includes(parseInt(painFilter))) return false;
             if(kw) {
                 var blob = `${r.locs||''} ${r.triggers||''} ${r.meds||''} ${r.symptoms||''} ${r.contexts||''} ${r.memo||''}`.toLowerCase();
                 if(!blob.includes(kw)) return false;
@@ -2129,7 +2165,10 @@
                 </div>
                 <div class="expand-hint">
                     <span>持續：${r.duration || '未確認'} ${changeCount > 0 ? `｜ 🔄 共 ${changeCount} 次轉移變化` : ''}</span>
-                    <span>點擊展開詳情 ▾</span>
+                    <span class="expand-toggle-btn">
+                        <span class="text-expand">▾ 點擊展開詳情</span>
+                        <span class="text-collapse">▴ 收合詳情</span>
+                    </span>
                 </div>
                 <div class="record-card-body" onclick="event.stopPropagation();">
                     ${r.sleep && r.sleep !== '未填寫' ? `<div class="record-detail"><strong>前天睡眠：</strong>${r.sleep}</div>` : ''}
@@ -2157,7 +2196,7 @@
         }
     };
 
-    // ==================== 4 & 5. 生理期專業介面渲染 (倒數天數 + 雙模式編輯) ====================
+    // ==================== 生理期專業介面渲染 ====================
     window.renderPeriodCalendar = function() {
         var grid = document.getElementById('period-grid');
         var monthYear = document.getElementById('period-month-year');
@@ -2234,7 +2273,6 @@
     window.handlePeriodCellClick = function(dateStr) {
         window.selectedPeriodDateStr = dateStr;
         if(window.isPeriodGridEditMode) {
-            // 在快速圈選模式下，點擊直接切換該日是否為生理期
             var periods = window.appLogic.getPeriods();
             var idx = periods.indexOf(dateStr);
             if(idx > -1) periods.splice(idx, 1);
@@ -2292,7 +2330,7 @@
         }
         var html = '';
         [...pAnalysis.cycles].reverse().forEach((c) => {
-            html += `<div class="record-card">
+            html += `<div class="record-card" style="cursor:default;">
                 <div style="font-weight:bold; color:#f48fb1; font-size:16px;">🩸 ${c.start} ～ ${c.end}</div>
                 <div style="font-size:14px; color:#ddd; margin-top:6px;">
                     行經天數：<strong>${c.duration}</strong> 天 ｜ 週期長度：<strong>${c.cycleLen ? c.cycleLen + ' 天' : '最新週期進行中'}</strong>
@@ -2342,9 +2380,14 @@
         document.getElementById('period-symp-bars').innerHTML = sorted.length ? sorted.map(s => makeBarHtml(s[0], s[1], maxVal, 'pain-4')).join('') : '<div style="color:#888;">尚無詳細伴隨症狀紀錄</div>';
     };
 
-    // ==================== 3. Chart.js 頭痛與跨模組關聯曲線圖 (含美觀月份切換器) ====================
+    // ==================== 4. Chart.js 頭痛與跨模組關聯曲線圖 (含月份與年份切換器) ====================
     window.changeChartMonth = function(offset) {
         chartCalDate.setMonth(chartCalDate.getMonth() + offset);
+        window.renderCharts();
+    };
+
+    window.changeChartYear = function(offset) {
+        chartTrendYear += offset;
         window.renderCharts();
     };
 
@@ -2412,15 +2455,16 @@
             });
         }
 
-        // 2. 近 6 個月發作次數與平均痛覺雙軸曲線圖
+        // 2. 年度 (1~12月) 發作次數與平均痛覺雙軸曲線圖 (含年份切換器)
+        var yearLabelEl = document.getElementById('chart-year-label');
+        if(yearLabelEl) yearLabelEl.innerText = `${chartTrendYear} 年`;
+
         var mLabels = [];
         var mCounts = [];
         var mAvgPains = [];
-        var now = new Date();
-        for(var m=5; m>=0; m--) {
-            var md = new Date(now.getFullYear(), now.getMonth() - m, 1);
-            var mPrefix = `${md.getFullYear()}-${String(md.getMonth()+1).padStart(2,'0')}`;
-            mLabels.push(mPrefix);
+        for(var m=1; m<=12; m++) {
+            var mPrefix = `${chartTrendYear}-${String(m).padStart(2,'0')}`;
+            mLabels.push(m + '月');
             var mRecs = records.filter(r => r.time && r.time.startsWith(mPrefix));
             mCounts.push(mRecs.length);
             if(mRecs.length > 0) {
@@ -2626,7 +2670,7 @@
             });
         }
 
-        // 保留原有的 Top 5 排行榜於底部補充
+        // 底部補充 Top 5 排行榜
         var container = document.getElementById('charts-container');
         if(records.length === 0) { container.innerHTML = ""; return; }
         var triggerCounts = {}, symptomCounts = {};
@@ -2655,7 +2699,7 @@
         var list = (window.appLogic.getModules().gi || []);
         var el = document.getElementById('gi-list');
         if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無腸胃紀錄。</div>'; return; }
-        el.innerHTML = list.map(item => `<div class="record-card">
+        el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
             <div style="display:flex; justify-content:space-between;">
                 <strong style="color:var(--primary-color);">${formatHistoryDate(item.time)}</strong>
                 <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('gi', ${item.id})">🗑️</span>
@@ -2689,7 +2733,7 @@
             });
         }
         if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無睡眠紀錄。</div>'; return; }
-        el.innerHTML = list.map(item => `<div class="record-card">
+        el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
             <div style="display:flex; justify-content:space-between;">
                 <strong style="color:var(--primary-color);">📅 ${item.date} (睡眠 ${item.hours} 小時)</strong>
                 <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('sleep', ${item.id})">🗑️</span>
@@ -2734,7 +2778,7 @@
         var list = (window.appLogic.getModules().allergy || []);
         var el = document.getElementById('allergy-list');
         if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無過敏與皮膚紀錄。</div>'; return; }
-        el.innerHTML = list.map(item => `<div class="record-card">
+        el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
             <div style="display:flex; justify-content:space-between;">
                 <strong style="color:var(--primary-color);">${formatHistoryDate(item.time)} (${item.level})</strong>
                 <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('allergy', ${item.id})">🗑️</span>
@@ -2775,7 +2819,7 @@
             });
         }
         if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無測量數據。</div>'; return; }
-        el.innerHTML = list.map(item => `<div class="record-card">
+        el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
             <div style="display:flex; justify-content:space-between;">
                 <strong style="color:var(--primary-color);">📅 ${item.date}</strong>
                 <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('vitals', ${item.id})">🗑️</span>
@@ -2795,7 +2839,7 @@
         var list = (window.appLogic.getModules().clinic || []);
         var el = document.getElementById('clinic-list');
         if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無看診與健檢紀錄。</div>'; return; }
-        el.innerHTML = list.map(item => `<div class="record-card">
+        el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
             <div style="display:flex; justify-content:space-between;">
                 <strong style="color:var(--primary-color);">🏥 ${item.date} - ${item.dept}</strong>
                 <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('clinic', ${item.id})">🗑️</span>
@@ -2841,7 +2885,7 @@
         var list = (window.appLogic.getModules().coffee || []);
         var el = document.getElementById('coffee-list');
         if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無咖啡豆品鑑筆記。</div>'; return; }
-        el.innerHTML = list.map(item => `<div class="record-card">
+        el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
             <div style="display:flex; justify-content:space-between;">
                 <strong style="color:#ffcc80; font-size:16px;">☕ ${item.name}</strong>
                 <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('coffee', ${item.id})">🗑️</span>
