@@ -38,6 +38,18 @@ const DEFAULT_PERIOD_PREFS = {
 };
 let globalPeriodPrefs = JSON.parse(JSON.stringify(DEFAULT_PERIOD_PREFS));
 
+const DEFAULT_SLEEP_PREFS = {
+    tags: ['睡前吃甘胺酸鎂', '入睡困難', '半夜醒來多次', '多夢/惡夢', '早醒睡不著', '睡醒肩頸僵硬']
+};
+let globalSleepPrefs = JSON.parse(JSON.stringify(DEFAULT_SLEEP_PREFS));
+
+const DEFAULT_ABNORMAL_PREFS = {
+    cats: ['腸胃消化', '皮膚與過敏', '呼吸道/發燒', '肌肉骨骼/外傷', '其他不適'],
+    symps: ['胃脹氣/打嗝', '胃酸逆流', '腹瀉/軟便', '便秘', '手部乾燥脫皮', '皮膚紅癢/濕疹', '鼻過敏/鼻塞', '肩頸腰背痠痛'],
+    treats: ['吃消脹氣/酵素', '擦護手霜/Yuskin', '擦外用藥膏', '吃抗組織胺/常備藥', '熱敷/休息']
+};
+let globalAbnormalPrefs = JSON.parse(JSON.stringify(DEFAULT_ABNORMAL_PREFS));
+
 let globalModules = {
     sleep: [],
     abnormal: [],
@@ -50,9 +62,17 @@ var currentCalDate = new Date();
 var chartCalDate = new Date();
 var chartTrendYear = new Date().getFullYear();
 window.periodCalDate = new Date();
+window.sleepCalDate = new Date();
+window.abnormalCalDate = new Date();
+
 window.selectedCalDateStr = '';
 window.selectedPeriodDateStr = '';
+window.selectedSleepDateStr = '';
+window.selectedAbnormalDateStr = '';
+
 window.currentHistoryPainFilter = 'all';
+window.currentSleepFilter = 'all';
+window.currentAbnormalFilter = 'all';
 window.lastEditedId = null;
 var chartInstances = {};
 
@@ -109,10 +129,20 @@ function loadDataFromCloud() {
                 if(!globalPeriodPrefs.cramps) globalPeriodPrefs.cramps = [...DEFAULT_PERIOD_PREFS.cramps];
                 if(!globalPeriodPrefs.symps) globalPeriodPrefs.symps = [...DEFAULT_PERIOD_PREFS.symps];
             }
+            if(data.sleepPrefs && data.sleepPrefs.tags) {
+                globalSleepPrefs = data.sleepPrefs;
+            }
+            if(data.abnormalPrefs) {
+                globalAbnormalPrefs = data.abnormalPrefs;
+                if(!globalAbnormalPrefs.cats) globalAbnormalPrefs.cats = [...DEFAULT_ABNORMAL_PREFS.cats];
+                if(!globalAbnormalPrefs.symps) globalAbnormalPrefs.symps = [...DEFAULT_ABNORMAL_PREFS.symps];
+                if(!globalAbnormalPrefs.treats) globalAbnormalPrefs.treats = [...DEFAULT_ABNORMAL_PREFS.treats];
+            }
             globalPeriods = data.periods || [];
             globalPeriodDetails = data.periodDetails || {};
             if(data.modules) {
                 globalModules = { ...globalModules, ...data.modules };
+                if(!globalModules.sleep) globalModules.sleep = [];
                 if(!globalModules.abnormal) globalModules.abnormal = [];
             }
         }
@@ -126,6 +156,10 @@ function loadDataFromCloud() {
         window.renderHeadachePrefsManager();
         window.renderPeriodDynamicButtons();
         window.renderPeriodPrefsManager();
+        window.renderSleepDynamicButtons();
+        window.renderSleepPrefsManager();
+        window.renderAbnormalDynamicButtons();
+        window.renderAbnormalPrefsManager();
         window.renderCalendar();
         window.renderPeriodCalendar();
         window.updateDashboard();
@@ -138,6 +172,8 @@ function syncToCloud() {
         records: globalRecords,
         prefs: globalPrefs,
         periodPrefs: globalPeriodPrefs,
+        sleepPrefs: globalSleepPrefs,
+        abnormalPrefs: globalAbnormalPrefs,
         periods: globalPeriods,
         periodDetails: globalPeriodDetails,
         modules: globalModules
@@ -156,10 +192,13 @@ window.appLogic = {
     getRecords: () => globalRecords,
     getPrefs: () => globalPrefs,
     getPeriodPrefs: () => globalPeriodPrefs,
+    getSleepPrefs: () => globalSleepPrefs,
+    getAbnormalPrefs: () => globalAbnormalPrefs,
     getPeriods: () => globalPeriods,
     getPeriodDetails: () => globalPeriodDetails,
     getModules: () => globalModules,
 
+    // 頭痛標籤管理
     addPrefItem: (categoryKey) => {
         var inputEl = document.getElementById('new-pref-' + categoryKey);
         if(!inputEl) return;
@@ -270,6 +309,91 @@ window.appLogic = {
         window.showToast("已刪除選項：" + targetVal);
     },
 
+    // 睡眠標籤設定管理
+    addSleepPrefItem: () => {
+        var inputEl = document.getElementById('new-spref-tags');
+        if(!inputEl) return;
+        var val = inputEl.value.trim();
+        if(!val) return window.showToast("請輸入選項名稱！");
+        if(globalSleepPrefs.tags.includes(val)) return window.showToast("此選項已存在！");
+        globalSleepPrefs.tags.push(val);
+        inputEl.value = '';
+        syncToCloud();
+        window.renderSleepDynamicButtons();
+        window.renderSleepPrefsManager();
+        window.showToast("已新增睡眠標籤：" + val);
+    },
+    editSleepPrefItem: (index) => {
+        var oldVal = globalSleepPrefs.tags[index];
+        var newVal = prompt(`修改「${oldVal}」的名稱：\n(已存檔的睡眠紀錄也會一併更新)`, oldVal);
+        if(newVal === null) return;
+        newVal = newVal.trim();
+        if(!newVal || newVal === oldVal) return;
+        if(globalSleepPrefs.tags.includes(newVal)) return window.showToast("此名稱已存在！");
+
+        globalSleepPrefs.tags[index] = newVal;
+        (globalModules.sleep || []).forEach(s => {
+            if(Array.isArray(s.tags)) s.tags = s.tags.map(t => t === oldVal ? newVal : t);
+        });
+        syncToCloud();
+        window.renderSleepDynamicButtons();
+        window.renderSleepPrefsManager();
+        window.showToast(`已將「${oldVal}」修改為「${newVal}」`);
+    },
+    deleteSleepPrefItem: (index) => {
+        var targetVal = globalSleepPrefs.tags[index];
+        if(!confirm(`確定要刪除「${targetVal}」選項嗎？`)) return;
+        globalSleepPrefs.tags.splice(index, 1);
+        syncToCloud();
+        window.renderSleepDynamicButtons();
+        window.renderSleepPrefsManager();
+        window.showToast("已刪除選項：" + targetVal);
+    },
+
+    // 身體異常標籤設定管理
+    addAbnormalPrefItem: (catKey) => {
+        var inputEl = document.getElementById('new-apref-' + catKey);
+        if(!inputEl) return;
+        var val = inputEl.value.trim();
+        if(!val) return window.showToast("請輸入選項名稱！");
+        if(!globalAbnormalPrefs[catKey]) globalAbnormalPrefs[catKey] = [];
+        if(globalAbnormalPrefs[catKey].includes(val)) return window.showToast("此選項已存在！");
+        globalAbnormalPrefs[catKey].push(val);
+        inputEl.value = '';
+        syncToCloud();
+        window.renderAbnormalDynamicButtons();
+        window.renderAbnormalPrefsManager();
+        window.showToast("已新增選項：" + val);
+    },
+    editAbnormalPrefItem: (catKey, index) => {
+        var oldVal = globalAbnormalPrefs[catKey][index];
+        var newVal = prompt(`修改「${oldVal}」的名稱：\n(已存檔的身體異常紀錄也會一併更新)`, oldVal);
+        if(newVal === null) return;
+        newVal = newVal.trim();
+        if(!newVal || newVal === oldVal) return;
+        if(globalAbnormalPrefs[catKey].includes(newVal)) return window.showToast("此名稱已存在！");
+
+        globalAbnormalPrefs[catKey][index] = newVal;
+        (globalModules.abnormal || []).forEach(item => {
+            if(Array.isArray(item[catKey])) {
+                item[catKey] = item[catKey].map(x => x === oldVal ? newVal : x);
+            }
+        });
+        syncToCloud();
+        window.renderAbnormalDynamicButtons();
+        window.renderAbnormalPrefsManager();
+        window.showToast(`已將「${oldVal}」修改為「${newVal}」`);
+    },
+    deleteAbnormalPrefItem: (catKey, index) => {
+        var targetVal = globalAbnormalPrefs[catKey][index];
+        if(!confirm(`確定要刪除「${targetVal}」選項嗎？`)) return;
+        globalAbnormalPrefs[catKey].splice(index, 1);
+        syncToCloud();
+        window.renderAbnormalDynamicButtons();
+        window.renderAbnormalPrefsManager();
+        window.showToast("已刪除選項：" + targetVal);
+    },
+
     togglePeriodGridEditMode: () => {
         window.isPeriodGridEditMode = !window.isPeriodGridEditMode;
         var btn = document.getElementById('period-grid-edit-btn');
@@ -326,14 +450,26 @@ window.appLogic = {
         window.renderHeadachePrefsManager();
     },
     saveCurrentEdit: () => {
-        var activeTab = document.querySelector('#mod-headache .tab-content.active').id;
-        if(activeTab === 'tab-record') window.appLogic.saveRecord();
-        else if(activeTab === 'tab-change') window.appLogic.saveChange();
+        if(currentModule === 'headache') {
+            var activeTab = document.querySelector('#mod-headache .tab-content.active').id;
+            if(activeTab === 'tab-record') window.appLogic.saveRecord();
+            else if(activeTab === 'tab-change') window.appLogic.saveChange();
+        } else if(currentModule === 'sleep') {
+            window.appLogic.saveSleepRecord();
+        } else if(currentModule === 'abnormal') {
+            window.appLogic.saveAbnormalRecord();
+        }
     },
     cancelCurrentEdit: () => {
-        var activeTab = document.querySelector('#mod-headache .tab-content.active').id;
-        if(activeTab === 'tab-record') window.appLogic.cancelEdit();
-        else if(activeTab === 'tab-change') window.appLogic.cancelChangeEdit();
+        if(currentModule === 'headache') {
+            var activeTab = document.querySelector('#mod-headache .tab-content.active').id;
+            if(activeTab === 'tab-record') window.appLogic.cancelEdit();
+            else if(activeTab === 'tab-change') window.appLogic.cancelChangeEdit();
+        } else if(currentModule === 'sleep') {
+            window.handleBottomNav('dashboard');
+        } else if(currentModule === 'abnormal') {
+            window.handleBottomNav('dashboard');
+        }
     },
     saveRecord: () => {
         var id = document.getElementById('edit-id').value;
@@ -343,7 +479,6 @@ window.appLogic = {
         var pain = window.getRadioVal('#tab-record', 'pain') || '未填寫';
         var duration = window.getRadioVal('#tab-record', 'duration') || '未確認';
         var effect = window.getRadioVal('#tab-record', 'effect');
-        var sleep = document.getElementById('sleep-toggle').checked ? document.getElementById('sleep-duration').value : '未填寫';
         
         var locs = []; document.querySelectorAll('#tab-record .loc-check:checked').forEach(el => locs.push(el.value));
         var contexts = []; document.querySelectorAll('#tab-record .context-check:checked').forEach(el => contexts.push(el.value));
@@ -370,13 +505,13 @@ window.appLogic = {
         if(id) {
             var idx = globalRecords.findIndex(r => r.id == id);
             if(idx > -1) { 
-                globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
+                globalRecords[idx] = { ...globalRecords[idx], time, pain, duration, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo }; 
             }
             window.lastEditedId = id; 
             window.showToast("編輯已儲存！");
         } else {
             var newId = Date.now();
-            globalRecords.push({ id: newId, time, pain, duration, sleep, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
+            globalRecords.push({ id: newId, time, pain, duration, locs: locs.join('、'), contexts: contexts.join('、'), triggers: triggers.join('、'), painTypes: painTypes.join('、'), symptoms: symptoms.join('、'), meds: meds.join('、'), effect, memo, changes: [] });
             window.lastEditedId = newId; 
             window.showToast("紀錄已儲存！");
         }
@@ -452,9 +587,6 @@ window.appLogic = {
     cancelEdit: () => {
         document.getElementById('edit-id').value = '';
         document.getElementById('form-title').innerText = "➕ 新增紀錄";
-        document.getElementById('sleep-toggle').checked = false;
-        document.getElementById('sleep-duration').style.display = 'none';
-        document.getElementById('sleep-duration').value = '8小時';
         document.querySelectorAll('#tab-record input[type="checkbox"], #tab-record input[type="radio"]').forEach(el => el.checked = false);
         document.querySelectorAll('#tab-record input[type="text"], #tab-record textarea').forEach(el => el.value = '');
         window.switchTab('history');
@@ -468,36 +600,106 @@ window.appLogic = {
         window.switchTab('history');
     },
 
-    // 擴充模組 A (睡眠、身體異常) 與 B (飲水、咖啡) 儲存邏輯
+    // ==================== 睡眠紀錄儲存與刪除 ====================
+    saveSleepRecord: () => {
+        var editId = document.getElementById('sleep-edit-id').value;
+        var date = document.getElementById('slp-date').value;
+        if(!date) return window.showToast("請選擇日期！");
+        var hours = parseFloat(document.getElementById('slp-hours').value) || 8;
+        var bed = document.getElementById('slp-bed').value || '23:00';
+        var wake = document.getElementById('slp-wake').value || '07:00';
+        var score = parseInt(window.getRadioVal('#sleep-sub-record', 'slp-score') || '3');
+        var tags = []; document.querySelectorAll('#sleep-sub-record .slp-tag:checked').forEach(e => tags.push(e.value));
+        var customTag = document.getElementById('custom-sleep-tag').value.trim();
+        if(customTag) {
+            tags.push(customTag);
+            if(!globalSleepPrefs.tags.includes(customTag)) {
+                globalSleepPrefs.tags.push(customTag);
+                window.renderSleepDynamicButtons();
+                window.renderSleepPrefsManager();
+            }
+        }
+        var memo = document.getElementById('slp-memo').value.trim();
+
+        if(!globalModules.sleep) globalModules.sleep = [];
+        if(editId) {
+            var idx = globalModules.sleep.findIndex(x => x.id == editId);
+            if(idx > -1) globalModules.sleep[idx] = { id: Number(editId), date, hours, bed, wake, score, tags, memo };
+        } else {
+            // 若同日已有紀錄則覆蓋更新
+            globalModules.sleep = globalModules.sleep.filter(x => x.date !== date);
+            globalModules.sleep.push({ id: Date.now(), date, hours, bed, wake, score, tags, memo });
+        }
+        globalModules.sleep.sort((a,b) => b.date.localeCompare(a.date));
+        document.getElementById('custom-sleep-tag').value = '';
+        window.selectedSleepDateStr = date;
+        syncToCloud();
+        window.showToast("睡眠紀錄已儲存！");
+        window.handleBottomNav('dashboard');
+    },
+    deleteSleepRecord: (id) => {
+        if(!confirm("確定刪除此筆睡眠紀錄？")) return;
+        globalModules.sleep = (globalModules.sleep || []).filter(x => x.id != id);
+        syncToCloud();
+        window.renderSleepCalendar();
+        window.renderSleepHistory();
+    },
+
+    // ==================== 身體異常紀錄儲存與刪除 ====================
+    saveAbnormalRecord: () => {
+        var editId = document.getElementById('abnormal-edit-id').value;
+        var time = document.getElementById('abn-time').value;
+        if(!time) return window.showToast("請填寫時間！");
+        var level = window.getRadioVal('#abnormal-sub-record', 'abn-level') || '2分: 中度不適';
+
+        var cats = []; document.querySelectorAll('#abnormal-sub-record .abn-cat:checked').forEach(e=>cats.push(e.value));
+        var symps = []; document.querySelectorAll('#abnormal-sub-record .abn-symp:checked').forEach(e=>symps.push(e.value));
+        var treats = []; document.querySelectorAll('#abnormal-sub-record .abn-treat:checked').forEach(e=>treats.push(e.value));
+
+        var cCat = document.getElementById('custom-abn-cat').value.trim();
+        var cSymp = document.getElementById('custom-abn-symp').value.trim();
+        var cTreat = document.getElementById('custom-abn-treat').value.trim();
+        var prefChanged = false;
+        if(cCat) { cats.push(cCat); if(!globalAbnormalPrefs.cats.includes(cCat)) { globalAbnormalPrefs.cats.push(cCat); prefChanged = true; } }
+        if(cSymp) { symps.push(cSymp); if(!globalAbnormalPrefs.symps.includes(cSymp)) { globalAbnormalPrefs.symps.push(cSymp); prefChanged = true; } }
+        if(cTreat) { treats.push(cTreat); if(!globalAbnormalPrefs.treats.includes(cTreat)) { globalAbnormalPrefs.treats.push(cTreat); prefChanged = true; } }
+        if(prefChanged) {
+            window.renderAbnormalDynamicButtons();
+            window.renderAbnormalPrefsManager();
+        }
+
+        var hasClinic = document.getElementById('abn-clinic-toggle').checked;
+        var clinicDate = hasClinic ? document.getElementById('abn-clinic-date').value : '';
+        var clinicDept = hasClinic ? document.getElementById('abn-clinic-dept').value.trim() : '';
+        var memo = document.getElementById('abn-memo').value.trim();
+
+        if(!globalModules.abnormal) globalModules.abnormal = [];
+        var itemData = { id: editId ? Number(editId) : Date.now(), time, level, cats, symps, treats, hasClinic, clinicDate, clinicDept, memo };
+
+        if(editId) {
+            var idx = globalModules.abnormal.findIndex(x => x.id == editId);
+            if(idx > -1) globalModules.abnormal[idx] = itemData;
+        } else {
+            globalModules.abnormal.push(itemData);
+        }
+        globalModules.abnormal.sort((a,b) => new Date(b.time) - new Date(a.time));
+        window.selectedAbnormalDateStr = time.slice(0, 10);
+        syncToCloud();
+        window.showToast("身體異常紀錄已儲存！");
+        window.handleBottomNav('dashboard');
+    },
+    deleteAbnormalRecord: (id) => {
+        if(!confirm("確定刪除此筆身體異常紀錄？")) return;
+        globalModules.abnormal = (globalModules.abnormal || []).filter(x => x.id != id);
+        syncToCloud();
+        window.renderAbnormalCalendar();
+        window.renderAbnormalHistory();
+    },
+
+    // B 類模組儲存邏輯
     saveModuleItem: (modName) => {
         var id = Date.now();
-        if(modName === 'sleep') {
-            var date = document.getElementById('slp-date').value;
-            var hours = parseFloat(document.getElementById('slp-hours').value) || 7;
-            var bed = document.getElementById('slp-bed').value;
-            var wake = document.getElementById('slp-wake').value;
-            var score = window.getRadioVal('#mod-sleep', 'slp-score') || '3';
-            var tags = []; document.querySelectorAll('.slp-tag:checked').forEach(e=>tags.push(e.value));
-            var memo = document.getElementById('slp-memo').value.trim();
-            globalModules.sleep = (globalModules.sleep || []).filter(x => x.date !== date);
-            globalModules.sleep.unshift({ id, date, hours, bed, wake, score: parseInt(score), tags, memo });
-            globalModules.sleep.sort((a,b) => b.date.localeCompare(a.date));
-            document.querySelectorAll('.slp-tag').forEach(e=>e.checked=false);
-            document.getElementById('slp-memo').value = '';
-            window.renderSleepModule();
-        } else if(modName === 'abnormal') {
-            var time = document.getElementById('abn-time').value;
-            var level = document.getElementById('abn-level').value;
-            var cats = []; document.querySelectorAll('.abn-cat:checked').forEach(e=>cats.push(e.value));
-            var symps = []; document.querySelectorAll('.abn-symp:checked').forEach(e=>symps.push(e.value));
-            var treats = []; document.querySelectorAll('.abn-treat:checked').forEach(e=>treats.push(e.value));
-            var memo = document.getElementById('abn-memo').value.trim();
-            if(!globalModules.abnormal) globalModules.abnormal = [];
-            globalModules.abnormal.unshift({ id, time, level, cats, symps, treats, memo });
-            document.querySelectorAll('.abn-cat, .abn-symp, .abn-treat').forEach(e=>e.checked=false);
-            document.getElementById('abn-memo').value = '';
-            window.renderAbnormalModule();
-        } else if(modName === 'coffee') {
+        if(modName === 'coffee') {
             var name = document.getElementById('cof-name').value.trim();
             if(!name) return window.showToast("請輸入豆款或濾掛名稱");
             var roast = document.getElementById('cof-roast').value;
@@ -538,15 +740,17 @@ window.appLogic = {
     }
 };
 
-// ==================== UI 與畫布渲染邏輯 ====================
+// ==================== UI 與導覽切換邏輯 ====================
 window.initDefaultDates = function() {
     var todayStr = getTodayStr();
     window.selectedCalDateStr = todayStr;
     window.selectedPeriodDateStr = todayStr;
+    window.selectedSleepDateStr = todayStr;
+    window.selectedAbnormalDateStr = todayStr;
     var nowIso = getLocalIsoStr(new Date());
     var abnTime = document.getElementById('abn-time');
     if(abnTime) abnTime.value = nowIso;
-    ['slp-date', 'hyd-date'].forEach(id => { var el = document.getElementById(id); if(el) el.value = todayStr; });
+    ['slp-date', 'hyd-date', 'abn-clinic-date'].forEach(id => { var el = document.getElementById(id); if(el) el.value = todayStr; });
 };
 
 window.toggleSidebar = function() {
@@ -580,7 +784,7 @@ window.switchModule = function(modName) {
 
     var bottomNav = document.getElementById('bottom-nav');
     var navSettingsBtn = document.getElementById('nav-settings');
-    if(modName === 'headache' || modName === 'period') {
+    if(['headache', 'period', 'sleep', 'abnormal'].includes(modName)) {
         bottomNav.style.display = 'flex';
         if(navSettingsBtn) navSettingsBtn.style.display = 'block';
         window.handleBottomNav('dashboard');
@@ -592,12 +796,14 @@ window.switchModule = function(modName) {
 };
 
 window.handleBottomNav = function(tabName) {
+    document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
+    var btn = document.getElementById('nav-' + tabName);
+    if(btn) btn.classList.add('active');
+    document.getElementById('fab-container').style.display = 'none';
+
     if(currentModule === 'headache') {
         window.switchTab(tabName);
     } else if(currentModule === 'period') {
-        document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
-        var btn = document.getElementById('nav-' + tabName);
-        if(btn) btn.classList.add('active');
         document.getElementById('period-sub-dash').style.display = (tabName === 'dashboard') ? 'block' : 'none';
         document.getElementById('period-sub-history').style.display = (tabName === 'history') ? 'block' : 'none';
         document.getElementById('period-sub-charts').style.display = (tabName === 'charts') ? 'block' : 'none';
@@ -607,15 +813,49 @@ window.handleBottomNav = function(tabName) {
         if(tabName === 'charts') window.renderPeriodCharts();
         if(tabName === 'settings') window.renderPeriodPrefsManager();
         window.scrollTo({ top: 0, behavior: 'auto' });
+    } else if(currentModule === 'sleep') {
+        document.getElementById('sleep-sub-dash').style.display = (tabName === 'dashboard') ? 'block' : 'none';
+        document.getElementById('sleep-sub-record').style.display = 'none';
+        document.getElementById('sleep-sub-history').style.display = (tabName === 'history') ? 'block' : 'none';
+        document.getElementById('sleep-sub-charts').style.display = (tabName === 'charts') ? 'block' : 'none';
+        document.getElementById('sleep-sub-settings').style.display = (tabName === 'settings') ? 'block' : 'none';
+        if(tabName === 'dashboard') window.renderSleepCalendar();
+        if(tabName === 'history') window.renderSleepHistory();
+        if(tabName === 'charts') window.renderSleepCharts();
+        if(tabName === 'settings') window.renderSleepPrefsManager();
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    } else if(currentModule === 'abnormal') {
+        document.getElementById('abnormal-sub-dash').style.display = (tabName === 'dashboard') ? 'block' : 'none';
+        document.getElementById('abnormal-sub-record').style.display = 'none';
+        document.getElementById('abnormal-sub-history').style.display = (tabName === 'history') ? 'block' : 'none';
+        document.getElementById('abnormal-sub-charts').style.display = (tabName === 'charts') ? 'block' : 'none';
+        document.getElementById('abnormal-sub-settings').style.display = (tabName === 'settings') ? 'block' : 'none';
+        if(tabName === 'dashboard') window.renderAbnormalCalendar();
+        if(tabName === 'history') window.renderAbnormalHistory();
+        if(tabName === 'charts') window.renderAbnormalCharts();
+        if(tabName === 'settings') window.renderAbnormalPrefsManager();
+        window.scrollTo({ top: 0, behavior: 'auto' });
     }
 };
 
 window.refreshCurrentModuleView = function() {
-    if(currentModule === 'sleep') window.renderSleepModule();
-    if(currentModule === 'abnormal') window.renderAbnormalModule();
     if(currentModule === 'hydration') window.renderHydrationModule();
     if(currentModule === 'coffee') window.renderCoffeeModule();
 };
+
+function isEditingFormActive() {
+    if(currentModule === 'headache') {
+        var activeTab = document.querySelector('#mod-headache .tab-content.active');
+        return activeTab && (activeTab.id === 'tab-record' || activeTab.id === 'tab-change');
+    }
+    if(currentModule === 'sleep') {
+        return document.getElementById('sleep-sub-record').style.display === 'block';
+    }
+    if(currentModule === 'abnormal') {
+        return document.getElementById('abnormal-sub-record').style.display === 'block';
+    }
+    return false;
+}
 
 window.addEventListener('DOMContentLoaded', () => {
     window.initDefaultDates();
@@ -624,20 +864,15 @@ window.addEventListener('DOMContentLoaded', () => {
         entries.forEach(entry => {
             if(entry.isIntersecting) {
                 fab.classList.add('hidden');
-            } else if(currentModule === 'headache') {
-                var activeTab = document.querySelector('#mod-headache .tab-content.active').id;
-                if(activeTab === 'tab-record' || activeTab === 'tab-change') {
-                    fab.classList.remove('hidden');
-                }
+            } else if(isEditingFormActive()) {
+                fab.classList.remove('hidden');
             }
         });
     }, { threshold: 0.1 });
-    var rAnchor = document.getElementById('save-anchor-record');
-    var cAnchor = document.getElementById('save-anchor-change');
-    if (window.IntersectionObserver && rAnchor && cAnchor) {
-        obs.observe(rAnchor);
-        obs.observe(cAnchor);
-    }
+    ['save-anchor-record', 'save-anchor-change', 'save-anchor-sleep', 'save-anchor-abnormal'].forEach(id => {
+        var el = document.getElementById(id);
+        if(window.IntersectionObserver && el) obs.observe(el);
+    });
 });
 
 window.showToast = function(msg) {
@@ -866,16 +1101,6 @@ window.editRecord = function(id) {
     document.getElementById('record-time').value = record.time;
     document.getElementById('memo').value = record.memo || '';
     ['custom-context','custom-trigger','custom-painType','custom-symptom','custom-med'].forEach(k => document.getElementById(k).value = '');
-    
-    if (record.sleep && record.sleep !== '未填寫') {
-         document.getElementById('sleep-toggle').checked = true;
-         document.getElementById('sleep-duration').style.display = 'block';
-         document.getElementById('sleep-duration').value = record.sleep;
-    } else {
-         document.getElementById('sleep-toggle').checked = false;
-         document.getElementById('sleep-duration').style.display = 'none';
-         document.getElementById('sleep-duration').value = '8小時';
-    }
 
     document.querySelectorAll('#tab-record input[type="radio"], #tab-record input[type="checkbox"]').forEach(el => el.checked = false);
     if(record.pain) { var p = document.querySelector('#tab-record input[name="pain"][value="' + record.pain + '"]'); if(p) p.checked = true; }
@@ -1244,6 +1469,7 @@ window.renderHistory = function() {
     }
 };
 
+// ==================== 生理期模組渲染 ====================
 window.renderPeriodCalendar = function() {
     var grid = document.getElementById('period-grid');
     var monthYear = document.getElementById('period-month-year');
@@ -1430,6 +1656,496 @@ window.renderPeriodCharts = function() {
     document.getElementById('period-symp-bars').innerHTML = sorted.length ? sorted.map(s => makeBarHtml(s[0], s[1], maxVal, 'pain-4')).join('') : '<div style="color:#888;">尚無詳細伴隨症狀紀錄</div>';
 };
 
+// ==================== 模組 3：睡眠紀錄 (月曆、預覽、表單、歷史、圖表、設定) ====================
+window.renderSleepDynamicButtons = function() {
+    var sp = window.appLogic ? window.appLogic.getSleepPrefs() : {tags:[]};
+    var el = document.getElementById('dynamic-sleep-tags');
+    if(el) el.innerHTML = (sp.tags||[]).map(t => `<label><input type="checkbox" class="slp-tag" value="${t}"><div class="btn-check">${t}</div></label>`).join('');
+};
+
+window.renderSleepPrefsManager = function() {
+    var container = document.getElementById('sleep-prefs-manager');
+    if(!container || !window.appLogic) return;
+    var items = window.appLogic.getSleepPrefs().tags || [];
+    var tagsHtml = items.map((val, idx) => `
+        <div class="pref-tag-item">
+            <span>${val}</span>
+            <span class="icon-btn" title="修改名稱" onclick="appLogic.editSleepPrefItem(${idx})">✏️</span>
+            <span class="icon-btn" title="刪除選項" onclick="appLogic.deleteSleepPrefItem(${idx})">🗑️</span>
+        </div>
+    `).join('');
+
+    container.innerHTML = `<div class="section">
+        <div class="section-title">😴 睡眠干擾與輔助標籤選項</div>
+        <div class="pref-tag-box">${tagsHtml || '<span style="color:#777; font-size:13px;">尚無選項</span>'}</div>
+        <div style="display:flex; gap:8px;">
+            <input type="text" id="new-spref-tags" placeholder="輸入要新增的睡眠標籤..." style="flex:1; padding:9px 12px;">
+            <button class="action-btn" style="background:var(--primary-color); border:none; padding:0 16px; font-weight:bold; white-space:nowrap;" onclick="appLogic.addSleepPrefItem()">➕ 新增</button>
+        </div>
+    </div>`;
+};
+
+window.changeSleepMonth = function(offset) {
+    window.sleepCalDate.setMonth(window.sleepCalDate.getMonth() + offset);
+    window.renderSleepCalendar();
+};
+
+window.renderSleepCalendar = function() {
+    var grid = document.getElementById('sleep-grid');
+    var monthYear = document.getElementById('sleep-month-year');
+    var year = window.sleepCalDate.getFullYear();
+    var month = window.sleepCalDate.getMonth();
+    var todayStr = getTodayStr();
+    if(!window.selectedSleepDateStr) window.selectedSleepDateStr = todayStr;
+
+    monthYear.innerText = year + ' 年 ' + (month + 1) + ' 月';
+    var html = '';
+    var days = ['日','一','二','三','四','五','六'];
+    for(var d=0; d<7; d++) html += '<div class="cal-day-name">' + days[d] + '</div>';
+
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    for(var i=0; i<firstDay; i++) html += '<div></div>';
+
+    var sleepList = (window.appLogic && window.appLogic.getModules().sleep) ? window.appLogic.getModules().sleep : [];
+    var dayMap = {};
+    sleepList.forEach(s => { dayMap[s.date] = s; });
+
+    for(var i=1; i<=daysInMonth; i++) {
+        var dateStr = fmtDateStr(year, month, i);
+        var isToday = (dateStr === todayStr);
+        var isSelected = (dateStr === window.selectedSleepDateStr);
+        var cellClass = 'cal-cell' + (isSelected ? ' selected-day' : '');
+        var dateNumHtml = isToday ? `<div class="today-highlight">${i}</div>` : `<div style="margin-bottom:2px;">${i}</div>`;
+        var dotHtml = '';
+        if(dayMap[dateStr]) {
+            var sc = dayMap[dateStr].score || 3;
+            var dotColorClass = sc >= 4 ? 'pain-fill' : (sc === 3 ? 'pain-1' : 'pain-4');
+            dotHtml = `<div class="dots-wrapper"><div class="cal-dot ${dotColorClass}"></div><span style="font-size:10px; color:#aaa;">${dayMap[dateStr].hours}h</span></div>`;
+        }
+        html += `<div class="${cellClass}" onclick="window.selectSleepDate('${dateStr}')">${dateNumHtml}${dotHtml}</div>`;
+    }
+    grid.innerHTML = html;
+    window.renderSleepDatePreview(window.selectedSleepDateStr);
+};
+
+window.selectSleepDate = function(dateStr) {
+    window.selectedSleepDateStr = dateStr;
+    window.renderSleepCalendar();
+};
+
+function buildSleepCardHtml(item, isPreview) {
+    var scoreColors = ['#e53935', '#f57c00', '#fbc02d', '#4f8bc9', '#4caf50'];
+    var col = scoreColors[(item.score || 3) - 1] || '#4f8bc9';
+    return `<div class="record-card" style="margin-bottom:8px; padding:12px;" onclick="this.classList.toggle('expanded')">
+        <div class="record-card-top">
+            <div style="font-weight:bold; color:var(--primary-color); font-size:16px;">📅 ${item.date} ｜ 睡眠 ${item.hours} 小時</div>
+            <div style="display:flex; gap:6px; white-space:nowrap;" onclick="event.stopPropagation();">
+                <button class="action-btn equal-action-btn" onclick="window.editSleepRecord(${item.id})">✏️ 編輯</button>
+                ${!isPreview ? `<button class="action-btn" onclick="appLogic.deleteSleepRecord(${item.id})">🗑️</button>` : ''}
+            </div>
+        </div>
+        <div style="margin-top:6px; font-size:14px; color:#ccc;">
+            🕒 作息：${item.bed} 入睡 ～ ${item.wake} 起床 ｜ <strong style="color:${col};">品質 ${item.score} 分</strong>
+        </div>
+        <div class="chips-container">
+            ${(item.tags||[]).map(t=>`<span class="chip loc">${t}</span>`).join('')}
+        </div>
+        <div class="expand-hint">
+            <span>${item.memo ? '有填寫備註' : '點擊查看詳情'}</span>
+            <span class="expand-toggle-btn">
+                <span class="text-expand">▾ 點擊展開詳情</span>
+                <span class="text-collapse">▴ 收合詳情</span>
+            </span>
+        </div>
+        <div class="record-card-body" onclick="event.stopPropagation();">
+            <div class="record-detail"><strong>入睡～起床：</strong>${item.bed} ～ ${item.wake} (共 ${item.hours} 小時)</div>
+            <div class="record-detail"><strong>睡眠品質評分：</strong>${item.score} 分</div>
+            ${item.tags && item.tags.length ? `<div class="record-detail"><strong>睡眠標籤：</strong>${item.tags.join('、')}</div>` : ''}
+            ${item.memo ? `<div class="record-detail"><strong>備註：</strong>${item.memo}</div>` : ''}
+            ${isPreview ? `<button class="action-btn" style="background:#444; margin-top:8px;" onclick="appLogic.deleteSleepRecord(${item.id})">🗑️ 刪除此筆睡眠紀錄</button>` : ''}
+        </div>
+    </div>`;
+}
+
+window.renderSleepDatePreview = function(dateStr) {
+    document.getElementById('sleep-selected-date-title').innerText = `📅 ${dateStr} 睡眠紀錄`;
+    var sleepList = (window.appLogic && window.appLogic.getModules().sleep) ? window.appLogic.getModules().sleep : [];
+    var dayItems = sleepList.filter(x => x.date === dateStr);
+    var addBtn = document.getElementById('btn-add-sleep-date');
+    if(addBtn) addBtn.style.display = dayItems.length > 0 ? 'none' : 'inline-flex';
+
+    var listEl = document.getElementById('sleep-selected-date-list');
+    if(dayItems.length === 0) {
+        listEl.innerHTML = `<div style="color:#888; font-size:14px; padding:8px 0;">當日無睡眠紀錄。點擊右上角按鈕可快速補登。</div>`;
+    } else {
+        listEl.innerHTML = dayItems.map(item => buildSleepCardHtml(item, true)).join('');
+    }
+};
+
+window.startNewSleepRecord = function(useSelectedDate) {
+    document.getElementById('sleep-edit-id').value = '';
+    document.getElementById('sleep-form-title').innerText = '➕ 新增睡眠紀錄';
+    document.getElementById('slp-date').value = useSelectedDate ? (window.selectedSleepDateStr || getTodayStr()) : getTodayStr();
+    document.getElementById('slp-hours').value = '8';
+    document.getElementById('slp-bed').value = '23:00';
+    document.getElementById('slp-wake').value = '07:00';
+    document.querySelectorAll('#sleep-sub-record input[type="checkbox"]').forEach(e => e.checked = false);
+    var defScore = document.querySelector('#sleep-sub-record input[name="slp-score"][value="3"]');
+    if(defScore) defScore.checked = true;
+    document.getElementById('slp-memo').value = '';
+    document.getElementById('custom-sleep-tag').value = '';
+
+    document.getElementById('sleep-sub-dash').style.display = 'none';
+    document.getElementById('sleep-sub-record').style.display = 'block';
+    var fab = document.getElementById('fab-container');
+    fab.style.display = 'flex';
+    fab.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+};
+
+window.editSleepRecord = function(id) {
+    var item = (window.appLogic.getModules().sleep || []).find(x => x.id == id);
+    if(!item) return;
+    document.getElementById('sleep-edit-id').value = item.id;
+    document.getElementById('sleep-form-title').innerText = '✏️ 編輯睡眠紀錄';
+    document.getElementById('slp-date').value = item.date;
+    document.getElementById('slp-hours').value = item.hours;
+    document.getElementById('slp-bed').value = item.bed || '23:00';
+    document.getElementById('slp-wake').value = item.wake || '07:00';
+    document.querySelectorAll('#sleep-sub-record input[type="checkbox"], #sleep-sub-record input[type="radio"]').forEach(e => e.checked = false);
+    var scEl = document.querySelector(`#sleep-sub-record input[name="slp-score"][value="${item.score || 3}"]`);
+    if(scEl) scEl.checked = true;
+    (item.tags || []).forEach(t => {
+        var cb = document.querySelector(`#sleep-sub-record .slp-tag[value="${t}"]`);
+        if(cb) cb.checked = true;
+    });
+    document.getElementById('slp-memo').value = item.memo || '';
+
+    document.getElementById('sleep-sub-dash').style.display = 'none';
+    document.getElementById('sleep-sub-history').style.display = 'none';
+    document.getElementById('sleep-sub-record').style.display = 'block';
+    var fab = document.getElementById('fab-container');
+    fab.style.display = 'flex';
+    fab.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+};
+
+window.setSleepFilter = function(val, pillEl) {
+    window.currentSleepFilter = val;
+    document.querySelectorAll('#sleep-score-pills .filter-pill').forEach(el => el.classList.remove('active'));
+    if(pillEl) pillEl.classList.add('active');
+    window.renderSleepHistory();
+};
+
+window.renderSleepHistory = function() {
+    var list = (window.appLogic.getModules().sleep || []);
+    var el = document.getElementById('sleep-list');
+    if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無睡眠紀錄。</div>'; return; }
+
+    var fVal = window.currentSleepFilter || 'all';
+    var kw = (document.getElementById('sleep-filter-keyword').value || '').trim().toLowerCase();
+    var filtered = list.filter(item => {
+        if(fVal !== 'all' && String(item.score) !== fVal) return false;
+        if(kw) {
+            var blob = `${item.date} ${(item.tags||[]).join(' ')} ${item.memo||''}`.toLowerCase();
+            if(!blob.includes(kw)) return false;
+        }
+        return true;
+    });
+    if(!filtered.length) { el.innerHTML = '<div style="color:#888;">沒有符合篩選條件的睡眠紀錄。</div>'; return; }
+    el.innerHTML = filtered.map(item => buildSleepCardHtml(item, false)).join('');
+};
+
+window.renderSleepCharts = function() {
+    var list = (window.appLogic.getModules().sleep || []);
+    var ctx = document.getElementById('chartSleepModule');
+    if(ctx) {
+        if(chartInstances.sleepMod) chartInstances.sleepMod.destroy();
+        var recent = [...list].slice(0, 14).reverse();
+        chartInstances.sleepMod = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: recent.map(x => x.date.slice(5)),
+                datasets: [
+                    { label: '睡眠時數 (h)', data: recent.map(x => x.hours), borderColor: '#4f8bc9', tension: 0.3 },
+                    { label: '睡眠品質 (1-5)', data: recent.map(x => x.score), borderColor: '#4caf50', borderDash: [4,4], tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks:{color:'#ccc'} }, x: { ticks:{color:'#ccc'} } }, plugins:{legend:{labels:{color:'#ddd'}}} }
+        });
+    }
+
+    var tagCounts = {};
+    list.forEach(item => { (item.tags||[]).forEach(t => { tagCounts[t] = (tagCounts[t]||0) + 1; }); });
+    var sorted = Object.entries(tagCounts).sort((a,b)=>b[1]-a[1]);
+    var maxVal = sorted.length ? sorted[0][1] : 0;
+    document.getElementById('sleep-tag-bars').innerHTML = sorted.length ? sorted.map(s => makeBarHtml(s[0], s[1], maxVal, 'pain-fill')).join('') : '<div style="color:#888;">尚無標籤統計資料</div>';
+};
+
+// ==================== 模組 4：身體異常情況紀錄 (月曆、預覽、表單、歷史、圖表、設定) ====================
+window.renderAbnormalDynamicButtons = function() {
+    var ap = window.appLogic ? window.appLogic.getAbnormalPrefs() : {cats:[], symps:[], treats:[]};
+    var cEl = document.getElementById('dynamic-abn-cats');
+    var sEl = document.getElementById('dynamic-abn-symps');
+    var tEl = document.getElementById('dynamic-abn-treats');
+
+    if(cEl) cEl.innerHTML = (ap.cats||[]).map(v => `<label><input type="checkbox" class="abn-cat" value="${v}"><div class="btn-check">${v}</div></label>`).join('');
+    if(sEl) sEl.innerHTML = (ap.symps||[]).map(v => `<label><input type="checkbox" class="abn-symp" value="${v}"><div class="btn-check">${v}</div></label>`).join('');
+    if(tEl) tEl.innerHTML = (ap.treats||[]).map(v => `<label><input type="checkbox" class="abn-treat" value="${v}"><div class="btn-check">${v}</div></label>`).join('');
+};
+
+window.renderAbnormalPrefsManager = function() {
+    var container = document.getElementById('abnormal-prefs-manager');
+    if(!container || !window.appLogic) return;
+    var ap = window.appLogic.getAbnormalPrefs();
+    var categories = [
+        { key: 'cats', title: '🗂️ 異常類別選項' },
+        { key: 'symps', title: '🩺 具體異常症狀選項' },
+        { key: 'treats', title: '💊 處置方式與用藥保養選項' }
+    ];
+
+    container.innerHTML = categories.map(cat => {
+        var items = ap[cat.key] || [];
+        var tagsHtml = items.map((val, idx) => `
+            <div class="pref-tag-item">
+                <span>${val}</span>
+                <span class="icon-btn" title="修改名稱" onclick="appLogic.editAbnormalPrefItem('${cat.key}', ${idx})">✏️</span>
+                <span class="icon-btn" title="刪除選項" onclick="appLogic.deleteAbnormalPrefItem('${cat.key}', ${idx})">🗑️</span>
+            </div>
+        `).join('');
+
+        return `<div class="section">
+            <div class="section-title">${cat.title}</div>
+            <div class="pref-tag-box">${tagsHtml || '<span style="color:#777; font-size:13px;">尚無選項</span>'}</div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="new-apref-${cat.key}" placeholder="輸入要新增的選項名稱..." style="flex:1; padding:9px 12px;">
+                <button class="action-btn" style="background:var(--primary-color); border:none; padding:0 16px; font-weight:bold; white-space:nowrap;" onclick="appLogic.addAbnormalPrefItem('${cat.key}')">➕ 新增</button>
+            </div>
+        </div>`;
+    }).join('');
+};
+
+window.changeAbnormalMonth = function(offset) {
+    window.abnormalCalDate.setMonth(window.abnormalCalDate.getMonth() + offset);
+    window.renderAbnormalCalendar();
+};
+
+window.renderAbnormalCalendar = function() {
+    var grid = document.getElementById('abnormal-grid');
+    var monthYear = document.getElementById('abnormal-month-year');
+    var year = window.abnormalCalDate.getFullYear();
+    var month = window.abnormalCalDate.getMonth();
+    var todayStr = getTodayStr();
+    if(!window.selectedAbnormalDateStr) window.selectedAbnormalDateStr = todayStr;
+
+    monthYear.innerText = year + ' 年 ' + (month + 1) + ' 月';
+    var html = '';
+    var days = ['日','一','二','三','四','五','六'];
+    for(var d=0; d<7; d++) html += '<div class="cal-day-name">' + days[d] + '</div>';
+
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    for(var i=0; i<firstDay; i++) html += '<div></div>';
+
+    var abnList = (window.appLogic && window.appLogic.getModules().abnormal) ? window.appLogic.getModules().abnormal : [];
+    var dayMap = {};
+    abnList.forEach(item => {
+        var dStr = (item.time || '').slice(0, 10);
+        if(!dayMap[dStr]) dayMap[dStr] = [];
+        dayMap[dStr].push(item);
+    });
+
+    for(var i=1; i<=daysInMonth; i++) {
+        var dateStr = fmtDateStr(year, month, i);
+        var isToday = (dateStr === todayStr);
+        var isSelected = (dateStr === window.selectedAbnormalDateStr);
+        var cellClass = 'cal-cell' + (isSelected ? ' selected-day' : '');
+        var dateNumHtml = isToday ? `<div class="today-highlight">${i}</div>` : `<div style="margin-bottom:2px;">${i}</div>`;
+        var dotHtml = '';
+        if(dayMap[dateStr]) {
+            dotHtml = '<div class="dots-wrapper">';
+            dayMap[dateStr].forEach(it => {
+                var lv = parseInt((it.level||'2').charAt(0)) || 2;
+                var dotClass = lv === 1 ? 'pain-1' : (lv === 2 ? 'pain-2' : 'pain-4');
+                dotHtml += `<div class="cal-dot ${dotClass}"></div>`;
+                if(it.hasClinic) dotHtml += `<span style="font-size:9px; line-height:1;">🏥</span>`;
+            });
+            dotHtml += '</div>';
+        }
+        html += `<div class="${cellClass}" onclick="window.selectAbnormalDate('${dateStr}')">${dateNumHtml}${dotHtml}</div>`;
+    }
+    grid.innerHTML = html;
+    window.renderAbnormalDatePreview(window.selectedAbnormalDateStr);
+};
+
+window.selectAbnormalDate = function(dateStr) {
+    window.selectedAbnormalDateStr = dateStr;
+    window.renderAbnormalCalendar();
+};
+
+function buildAbnormalCardHtml(item, isPreview) {
+    var lv = parseInt((item.level||'2').charAt(0)) || 2;
+    var lvColors = ['#fbc02d', '#ff9800', '#e53935'];
+    var col = lvColors[lv - 1] || '#ff9800';
+    var timeLabel = isPreview ? (item.time || '').slice(11, 16) : formatHistoryDate(item.time);
+
+    return `<div class="record-card" style="margin-bottom:8px; padding:12px;" onclick="this.classList.toggle('expanded')">
+        <div class="record-card-top">
+            <div style="font-weight:bold; color:var(--primary-color); font-size:16px;">
+                🕒 ${timeLabel} <span style="color:${col}; font-size:14px; margin-left:6px;">(${item.level})</span>
+            </div>
+            <div style="display:flex; gap:6px; white-space:nowrap;" onclick="event.stopPropagation();">
+                <button class="action-btn equal-action-btn" onclick="window.editAbnormalRecord(${item.id})">✏️ 編輯</button>
+                ${!isPreview ? `<button class="action-btn" onclick="appLogic.deleteAbnormalRecord(${item.id})">🗑️</button>` : ''}
+            </div>
+        </div>
+        <div class="chips-container">
+            ${item.hasClinic ? `<span class="chip period">🏥 就診: ${item.clinicDept || '未填科別'}</span>` : ''}
+            ${(item.cats||[]).map(c=>`<span class="chip loc">${c}</span>`).join('')}
+            ${(item.symps||[]).map(s=>`<span class="chip trig">${s}</span>`).join('')}
+            ${(item.treats||[]).map(t=>`<span class="chip med">${t}</span>`).join('')}
+        </div>
+        <div class="expand-hint">
+            <span>${item.hasClinic ? `🏥 就診日：${item.clinicDate || '當日'}` : '點擊查看完整內容'}</span>
+            <span class="expand-toggle-btn">
+                <span class="text-expand">▾ 點擊展開詳情</span>
+                <span class="text-collapse">▴ 收合詳情</span>
+            </span>
+        </div>
+        <div class="record-card-body" onclick="event.stopPropagation();">
+            ${item.cats && item.cats.length ? `<div class="record-detail"><strong>異常類別：</strong>${item.cats.join('、')}</div>` : ''}
+            ${item.symps && item.symps.length ? `<div class="record-detail"><strong>具體症狀：</strong>${item.symps.join('、')}</div>` : ''}
+            ${item.treats && item.treats.length ? `<div class="record-detail"><strong>處置與用藥：</strong>${item.treats.join('、')}</div>` : ''}
+            ${item.hasClinic ? `<div class="record-detail" style="color:#f48fb1;"><strong>🏥 就診資訊：</strong>${item.clinicDate || '未填日期'} ｜ 科別/院所：${item.clinicDept || '未填'}</div>` : `<div class="record-detail"><strong>是否就診：</strong>無</div>`}
+            ${item.memo ? `<div class="record-detail"><strong>詳細備註：</strong>${item.memo}</div>` : ''}
+            ${isPreview ? `<button class="action-btn" style="background:#444; margin-top:8px;" onclick="appLogic.deleteAbnormalRecord(${item.id})">🗑️ 刪除此筆異常紀錄</button>` : ''}
+        </div>
+    </div>`;
+}
+
+window.renderAbnormalDatePreview = function(dateStr) {
+    document.getElementById('abnormal-selected-date-title').innerText = `📅 ${dateStr} 身體異常紀錄`;
+    var abnList = (window.appLogic && window.appLogic.getModules().abnormal) ? window.appLogic.getModules().abnormal : [];
+    var dayItems = abnList.filter(x => (x.time || '').startsWith(dateStr));
+    var addBtn = document.getElementById('btn-add-abnormal-date');
+    if(addBtn) addBtn.style.display = dayItems.length > 0 ? 'none' : 'inline-flex';
+
+    var listEl = document.getElementById('abnormal-selected-date-list');
+    if(dayItems.length === 0) {
+        listEl.innerHTML = `<div style="color:#888; font-size:14px; padding:8px 0;">當日無身體異常紀錄。點擊右上角按鈕可快速補登。</div>`;
+    } else {
+        listEl.innerHTML = dayItems.map(item => buildAbnormalCardHtml(item, true)).join('');
+    }
+};
+
+window.startNewAbnormalRecord = function(useSelectedDate) {
+    document.getElementById('abnormal-edit-id').value = '';
+    document.getElementById('abnormal-form-title').innerText = '➕ 新增身體異常紀錄';
+    var baseDate = useSelectedDate ? (window.selectedAbnormalDateStr || getTodayStr()) : getTodayStr();
+    var nowTime = new Date().toTimeString().slice(0,5);
+    document.getElementById('abn-time').value = `${baseDate}T${nowTime}`;
+    document.querySelectorAll('#abnormal-sub-record input[type="checkbox"]').forEach(e => e.checked = false);
+    var defLv = document.querySelector('#abnormal-sub-record input[name="abn-level"][value="2分: 中度不適"]');
+    if(defLv) defLv.checked = true;
+    document.getElementById('abn-clinic-fields').style.display = 'none';
+    document.getElementById('abn-clinic-date').value = baseDate;
+    document.getElementById('abn-clinic-dept').value = '';
+    document.getElementById('abn-memo').value = '';
+    ['custom-abn-cat', 'custom-abn-symp', 'custom-abn-treat'].forEach(id => document.getElementById(id).value = '');
+
+    document.getElementById('abnormal-sub-dash').style.display = 'none';
+    document.getElementById('abnormal-sub-record').style.display = 'block';
+    var fab = document.getElementById('fab-container');
+    fab.style.display = 'flex';
+    fab.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+};
+
+window.editAbnormalRecord = function(id) {
+    var item = (window.appLogic.getModules().abnormal || []).find(x => x.id == id);
+    if(!item) return;
+    document.getElementById('abnormal-edit-id').value = item.id;
+    document.getElementById('abnormal-form-title').innerText = '✏️ 編輯身體異常紀錄';
+    document.getElementById('abn-time').value = item.time;
+    document.querySelectorAll('#abnormal-sub-record input[type="checkbox"], #abnormal-sub-record input[type="radio"]').forEach(e => e.checked = false);
+
+    var lvEl = document.querySelector(`#abnormal-sub-record input[name="abn-level"][value="${item.level}"]`);
+    if(lvEl) lvEl.checked = true;
+    (item.cats||[]).forEach(v => { var cb = document.querySelector(`#abnormal-sub-record .abn-cat[value="${v}"]`); if(cb) cb.checked = true; });
+    (item.symps||[]).forEach(v => { var cb = document.querySelector(`#abnormal-sub-record .abn-symp[value="${v}"]`); if(cb) cb.checked = true; });
+    (item.treats||[]).forEach(v => { var cb = document.querySelector(`#abnormal-sub-record .abn-treat[value="${v}"]`); if(cb) cb.checked = true; });
+
+    document.getElementById('abn-clinic-toggle').checked = !!item.hasClinic;
+    document.getElementById('abn-clinic-fields').style.display = item.hasClinic ? 'block' : 'none';
+    document.getElementById('abn-clinic-date').value = item.clinicDate || (item.time || '').slice(0,10);
+    document.getElementById('abn-clinic-dept').value = item.clinicDept || '';
+    document.getElementById('abn-memo').value = item.memo || '';
+
+    document.getElementById('abnormal-sub-dash').style.display = 'none';
+    document.getElementById('abnormal-sub-history').style.display = 'none';
+    document.getElementById('abnormal-sub-record').style.display = 'block';
+    var fab = document.getElementById('fab-container');
+    fab.style.display = 'flex';
+    fab.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+};
+
+window.setAbnormalFilter = function(val, pillEl) {
+    window.currentAbnormalFilter = val;
+    document.querySelectorAll('#abnormal-level-pills .filter-pill').forEach(el => el.classList.remove('active'));
+    if(pillEl) pillEl.classList.add('active');
+    window.renderAbnormalHistory();
+};
+
+window.renderAbnormalHistory = function() {
+    var list = (window.appLogic.getModules().abnormal || []);
+    var el = document.getElementById('abnormal-list');
+    if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無身體異常紀錄。</div>'; return; }
+
+    var fVal = window.currentAbnormalFilter || 'all';
+    var kw = (document.getElementById('abnormal-filter-keyword').value || '').trim().toLowerCase();
+    var filtered = list.filter(item => {
+        if(fVal === 'clinic' && !item.hasClinic) return false;
+        if(['1','2','3'].includes(fVal) && !(item.level||'').startsWith(fVal)) return false;
+        if(kw) {
+            var blob = `${(item.cats||[]).join(' ')} ${(item.symps||[]).join(' ')} ${(item.treats||[]).join(' ')} ${item.clinicDept||''} ${item.memo||''}`.toLowerCase();
+            if(!blob.includes(kw)) return false;
+        }
+        return true;
+    });
+    if(!filtered.length) { el.innerHTML = '<div style="color:#888;">沒有符合篩選條件的異常紀錄。</div>'; return; }
+    el.innerHTML = filtered.map(item => buildAbnormalCardHtml(item, false)).join('');
+};
+
+window.renderAbnormalCharts = function() {
+    var list = (window.appLogic.getModules().abnormal || []);
+    var catCounts = {}, sympCounts = {};
+    list.forEach(item => {
+        (item.cats||[]).forEach(c => { catCounts[c] = (catCounts[c]||0) + 1; });
+        (item.symps||[]).forEach(s => { sympCounts[s] = (sympCounts[s]||0) + 1; });
+    });
+
+    var ctx = document.getElementById('chartAbnormalCats');
+    if(ctx) {
+        if(chartInstances.abnCats) chartInstances.abnCats.destroy();
+        var cLabels = Object.keys(catCounts);
+        chartInstances.abnCats = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: cLabels.length ? cLabels : ['尚無資料'],
+                datasets: [{ label: '發生次數', data: cLabels.map(k => catCounts[k]), backgroundColor: '#4f8bc9' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks:{color:'#ccc', stepSize: 1} }, x: { ticks:{color:'#ccc'} } }, plugins:{legend:{labels:{color:'#ddd'}}} }
+        });
+    }
+
+    var sortedSymps = Object.entries(sympCounts).sort((a,b)=>b[1]-a[1]).slice(0, 8);
+    var maxS = sortedSymps.length ? sortedSymps[0][1] : 0;
+    document.getElementById('abnormal-symp-bars').innerHTML = sortedSymps.length ? sortedSymps.map(s => makeBarHtml(s[0], s[1], maxS, 'pain-2')).join('') : '<div style="color:#888;">尚無症狀統計資料</div>';
+};
+
+// ==================== 頭痛圖表分析 ====================
 window.changeChartMonth = function(offset) {
     chartCalDate.setMonth(chartCalDate.getMonth() + offset);
     window.renderCharts();
@@ -1555,11 +2271,12 @@ window.renderCharts = function() {
 
     records.forEach(r => {
         var hrs = null;
-        if(r.sleep && r.sleep !== '未填寫') {
-            hrs = parseInt(r.sleep);
-        } else if(r.time) {
+        if(r.time) {
             var dStr = r.time.slice(0, 10);
-            if(sleepMap[dStr]) hrs = Math.round(sleepMap[dStr]);
+            if(sleepMap[dStr] !== undefined) hrs = Math.round(sleepMap[dStr]);
+        }
+        if(hrs === null && r.sleep && r.sleep !== '未填寫') {
+            hrs = parseInt(r.sleep);
         }
         if(hrs !== null && !isNaN(hrs)) {
             var key = hrs <= 5 ? '5h以下' : (hrs === 6 ? '6h' : (hrs === 7 ? '7h' : (hrs === 8 ? '8h' : '9h以上')));
@@ -1736,56 +2453,7 @@ window.renderCharts = function() {
         </div>`;
 };
 
-// ==================== 擴充模組 A & B 畫面渲染 ====================
-window.renderSleepModule = function() {
-    var list = (window.appLogic.getModules().sleep || []);
-    var el = document.getElementById('sleep-list');
-    var ctx = document.getElementById('chartSleepModule');
-    if(ctx) {
-        if(chartInstances.sleepMod) chartInstances.sleepMod.destroy();
-        var recent = [...list].slice(0, 14).reverse();
-        chartInstances.sleepMod = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: recent.map(x => x.date.slice(5)),
-                datasets: [
-                    { label: '睡眠時數 (h)', data: recent.map(x => x.hours), borderColor: '#4f8bc9', tension: 0.3 },
-                    { label: '睡眠品質 (1-5)', data: recent.map(x => x.score), borderColor: '#4caf50', borderDash: [4,4], tension: 0.3 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks:{color:'#ccc'} }, x: { ticks:{color:'#ccc'} } }, plugins:{legend:{labels:{color:'#ddd'}}} }
-        });
-    }
-    if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無睡眠紀錄。</div>'; return; }
-    el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
-        <div style="display:flex; justify-content:space-between;">
-            <strong style="color:var(--primary-color);">📅 ${item.date} (睡眠 ${item.hours} 小時)</strong>
-            <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('sleep', ${item.id})">🗑️</span>
-        </div>
-        <div style="font-size:13px; color:#ccc; margin-top:4px;">作息：${item.bed} 入睡 ～ ${item.wake} 起床 ｜ 品質：${item.score} 分</div>
-        <div class="chips-container">${(item.tags||[]).map(t=>`<span class="chip loc">${t}</span>`).join('')}</div>
-        ${item.memo ? `<div style="font-size:13px; color:#aaa; margin-top:6px;">備註：${item.memo}</div>` : ''}
-    </div>`).join('');
-};
-
-window.renderAbnormalModule = function() {
-    var list = (window.appLogic.getModules().abnormal || []);
-    var el = document.getElementById('abnormal-list');
-    if(!list.length) { el.innerHTML = '<div style="color:#888;">尚無身體異常紀錄。</div>'; return; }
-    el.innerHTML = list.map(item => `<div class="record-card" style="cursor:default;">
-        <div style="display:flex; justify-content:space-between;">
-            <strong style="color:var(--primary-color);">${formatHistoryDate(item.time)} (${item.level})</strong>
-            <span style="cursor:pointer;" onclick="appLogic.deleteModuleItem('abnormal', ${item.id})">🗑️</span>
-        </div>
-        <div class="chips-container">
-            ${(item.cats||[]).map(c=>`<span class="chip loc">${c}</span>`).join('')}
-            ${(item.symps||[]).map(s=>`<span class="chip trig">${s}</span>`).join('')}
-            ${(item.treats||[]).map(t=>`<span class="chip med">${t}</span>`).join('')}
-        </div>
-        ${item.memo ? `<div style="font-size:14px; color:#ddd; margin-top:8px; white-space:pre-wrap;">${item.memo}</div>` : ''}
-    </div>`).join('');
-};
-
+// ==================== B 類模組畫面渲染 ====================
 window.renderHydrationModule = function() {
     var list = (window.appLogic.getModules().hydration || []);
     var dateStr = document.getElementById('hyd-date').value || getTodayStr();
@@ -1837,12 +2505,12 @@ window.renderCoffeeModule = function() {
 window.exportCSV = function() {
     var records = window.appLogic ? window.appLogic.getRecords() : [];
     if(records.length === 0) return window.showToast("無資料可匯出");
-    var csvContent = "\uFEFF時間,痛覺評分,部位,持續時間,前天睡眠,潛在誘因,疼痛方式,伴隨症狀,發作情境,用藥,藥效,備註,轉移軌跡\n";
+    var csvContent = "\uFEFF時間,痛覺評分,部位,持續時間,潛在誘因,疼痛方式,伴隨症狀,發作情境,用藥,藥效,備註,轉移軌跡\n";
     
     records.forEach(r => {
         var track = (r.changes && r.changes.length > 0) ? r.changes.map((c, i) => `[變化${i+1}] ${formatHistoryDate(c.time)} 痛:${parseInt(c.pain.charAt(0))||1} 部位:${c.locs||'無'}`).join(' / ') : '無';
         var row = [
-            formatHistoryDate(r.time), parseInt(r.pain.charAt(0))||1, r.locs, r.duration||'', r.sleep||'', r.triggers, r.painTypes||'', r.symptoms||'', r.contexts||'', r.meds, r.effect, 
+            formatHistoryDate(r.time), parseInt(r.pain.charAt(0))||1, r.locs, r.duration||'', r.triggers, r.painTypes||'', r.symptoms||'', r.contexts||'', r.meds, r.effect, 
             (r.memo || '').replace(/,/g, "，").replace(/\n/g, " "), track
         ];
         csvContent += row.join(",") + "\n";
