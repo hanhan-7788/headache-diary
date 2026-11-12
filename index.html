@@ -58,7 +58,7 @@
         <div class="sidebar-item" id="menu-coffee" onclick="window.switchModule('coffee')">☕ 6. 咖啡豆與沖煮品鑑</div>
     </div>
 
-    <!-- 雙懸浮按鈕群組 (於頭痛填寫頁顯示) -->
+    <!-- 雙懸浮按鈕群組 (於各模組填寫頁顯示) -->
     <div id="fab-container" class="fab-container">
         <button class="fab-btn cancel" onclick="appLogic.cancelCurrentEdit()">❌ 取消</button>
         <button class="fab-btn save" onclick="appLogic.saveCurrentEdit()">💾 儲存</button>
@@ -99,7 +99,7 @@
                 <button class="big-add-btn" onclick="startNewRecord()">➕ 立即新增頭痛紀錄</button>
             </div>
 
-            <!-- 2. 新增/編輯主紀錄 -->
+            <!-- 2. 新增/編輯主紀錄 (已移除睡眠時長欄位) -->
             <div id="tab-record" class="tab-content">
                 <h2 id="form-title">➕ 新增紀錄</h2>
                 <div class="section">
@@ -177,27 +177,6 @@
                     <div class="section-title">發作情境與狀態 (可多選)</div>
                     <div class="btn-group" id="dynamic-contexts"></div>
                     <input type="text" id="custom-context" placeholder="輸入新情境 (存檔後自動記憶)" style="margin-top:10px;">
-                </div>
-                <div class="section">
-                    <div class="section-title">前一天睡眠時長</div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <label style="flex-shrink: 0; margin: 0; cursor: pointer;">
-                            <input type="checkbox" id="sleep-toggle" onchange="document.getElementById('sleep-duration').style.display = this.checked ? 'block' : 'none';">
-                            <div class="btn-check" style="margin: 0; padding: 12px 20px;">有紀錄</div>
-                        </label>
-                        <select id="sleep-duration" style="display:none; flex-grow: 1; margin: 0;">
-                            <option value="3小時以下">3 小時以下</option>
-                            <option value="4小時">4 小時</option>
-                            <option value="5小時">5 小時</option>
-                            <option value="6小時">6 小時</option>
-                            <option value="7小時">7 小時</option>
-                            <option value="8小時" selected>8 小時 (預設)</option>
-                            <option value="9小時">9 小時</option>
-                            <option value="10小時">10 小時</option>
-                            <option value="11小時">11 小時</option>
-                            <option value="12小時以上">12 小時以上</option>
-                        </select>
-                    </div>
                 </div>
                 <div class="section">
                     <div class="section-title">用藥與效果</div>
@@ -332,7 +311,7 @@
 
                 <div class="section">
                     <div class="section-title">😴 睡眠時數 vs 頭痛痛覺關聯曲線</div>
-                    <div style="font-size:12px; color:#aaa; margin-bottom:6px;">綜合頭痛紀錄與睡眠日記，分析不同睡眠時長下的發作次數與平均痛覺</div>
+                    <div style="font-size:12px; color:#aaa; margin-bottom:6px;">與「睡眠紀錄」自動比對，分析不同睡眠時長下的發作次數與平均痛覺</div>
                     <div class="chart-box"><canvas id="chartSleepHeadache"></canvas></div>
                 </div>
 
@@ -443,96 +422,244 @@
             </div>
         </div>
 
-        <!-- ==================== 模組 3：睡眠紀錄 (A1) ==================== -->
+        <!-- ==================== 模組 3：睡眠紀錄 (完整四分頁 + 月曆架構) ==================== -->
         <div id="mod-sleep" class="module-view">
-            <h2>😴 睡眠品質與作息紀錄</h2>
-            <div class="section">
-                <div class="section-title">➕ 新增睡眠紀錄</div>
-                <div class="form-row">
-                    <div><span class="form-label">紀錄日期(起床日)</span><input type="date" id="slp-date"></div>
-                    <div><span class="form-label">總睡眠時數(小時)</span><input type="number" step="0.5" id="slp-hours" value="7.5"></div>
-                </div>
-                <div class="form-row">
-                    <div><span class="form-label">昨晚入睡時間</span><input type="time" id="slp-bed" value="23:30"></div>
-                    <div><span class="form-label">今早起床時間</span><input type="time" id="slp-wake" value="07:00"></div>
-                </div>
-                <div class="form-label">起床精神與睡眠品質評分</div>
-                <div class="btn-group" style="margin-bottom:10px;">
-                    <label><input type="radio" name="slp-score" value="1"><div class="btn-check">1分 極差</div></label>
-                    <label><input type="radio" name="slp-score" value="2"><div class="btn-check">2分 疲累</div></label>
-                    <label><input type="radio" name="slp-score" value="3" checked><div class="btn-check">3分 普通</div></label>
-                    <label><input type="radio" name="slp-score" value="4"><div class="btn-check">4分 飽滿</div></label>
-                    <label><input type="radio" name="slp-score" value="5"><div class="btn-check">5分 極佳</div></label>
-                </div>
-                <div class="form-label">睡眠干擾與輔助標籤</div>
-                <div class="btn-group" style="margin-bottom:10px;">
-                    <label><input type="checkbox" class="slp-tag" value="睡前吃甘胺酸鎂"><div class="btn-check">睡前吃鎂</div></label>
-                    <label><input type="checkbox" class="slp-tag" value="入睡困難"><div class="btn-check">入睡困難</div></label>
-                    <label><input type="checkbox" class="slp-tag" value="半夜醒來多次"><div class="btn-check">半夜易醒</div></label>
-                    <label><input type="checkbox" class="slp-tag" value="多夢/惡夢"><div class="btn-check">多夢/惡夢</div></label>
-                    <label><input type="checkbox" class="slp-tag" value="早醒睡不著"><div class="btn-check">早醒</div></label>
-                </div>
-                <input type="text" id="slp-memo" placeholder="睡眠備註..." style="margin-bottom:10px;">
-                <button class="save-btn" onclick="appLogic.saveModuleItem('sleep')">💾 儲存睡眠紀錄</button>
-            </div>
-            <div class="section">
-                <div class="section-title">📈 近期睡眠時數與品質曲線</div>
-                <div class="chart-box"><canvas id="chartSleepModule"></canvas></div>
-            </div>
-            <div class="section"><div class="section-title">📖 睡眠歷史清單</div><div id="sleep-list"></div></div>
-        </div>
-
-        <!-- ==================== 模組 4：身體異常情況紀錄 (A2 整合版) ==================== -->
-        <div id="mod-abnormal" class="module-view">
-            <h2>🩺 身體異常情況紀錄</h2>
-            <div class="section">
-                <div class="section-title">➕ 新增身體異常紀錄</div>
-                <div class="form-row">
-                    <div><span class="form-label">發作/紀錄時間</span><input type="datetime-local" id="abn-time"></div>
-                    <div>
-                        <span class="form-label">嚴重程度</span>
-                        <select id="abn-level">
-                            <option value="1分 輕微有感">1分 輕微有感</option>
-                            <option value="2分 中度不適" selected>2分 中度不適</option>
-                            <option value="3分 嚴重困擾/需就醫">3分 嚴重困擾/需就醫</option>
-                        </select>
+            <!-- 1. 睡眠首頁 -->
+            <div id="sleep-sub-dash">
+                <div class="section">
+                    <div class="calendar-header">
+                        <button class="action-btn" onclick="window.changeSleepMonth(-1)">◀ 上月</button>
+                        <span id="sleep-month-year">...</span>
+                        <button class="action-btn" onclick="window.changeSleepMonth(1)">下月 ▶</button>
+                    </div>
+                    <div class="calendar-grid" id="sleep-grid"></div>
+                    <div style="margin-top:12px; font-size:12px; color:#aaa; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:3px;"><span class="cal-dot pain-fill"></span>品質 4~5分</div>
+                        <div style="display:flex; align-items:center; gap:3px;"><span class="cal-dot pain-1"></span>品質 3分</div>
+                        <div style="display:flex; align-items:center; gap:3px;"><span class="cal-dot pain-4"></span>品質 1~2分</div>
                     </div>
                 </div>
 
-                <div class="form-label">異常類別 (可多選)</div>
-                <div class="btn-group" style="margin-bottom:12px;">
-                    <label><input type="checkbox" class="abn-cat" value="腸胃消化"><div class="btn-check">🫃 腸胃消化</div></label>
-                    <label><input type="checkbox" class="abn-cat" value="皮膚過敏"><div class="btn-check">🤧 皮膚與過敏</div></label>
-                    <label><input type="checkbox" class="abn-cat" value="感冒發燒"><div class="btn-check">🤒 呼吸道/發燒</div></label>
-                    <label><input type="checkbox" class="abn-cat" value="肌肉骨骼"><div class="btn-check">🦴 痠痛/外傷</div></label>
-                    <label><input type="checkbox" class="abn-cat" value="看診用藥"><div class="btn-check">🏥 看診/其他</div></label>
+                <div class="section">
+                    <div class="section-title">
+                        <span id="sleep-selected-date-title">📅 當日睡眠紀錄預覽</span>
+                        <button class="action-btn" id="btn-add-sleep-date" style="background:var(--primary-color); border:none; font-weight:bold;" onclick="window.startNewSleepRecord(true)">➕ 補登此日</button>
+                    </div>
+                    <div id="sleep-selected-date-list"></div>
                 </div>
 
-                <div class="form-label">具體異常症狀 (可多選)</div>
-                <div class="btn-group" style="margin-bottom:12px;">
-                    <label><input type="checkbox" class="abn-symp" value="胃脹氣/打嗝"><div class="btn-check">胃脹氣/打嗝</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="胃酸逆流/火燒心"><div class="btn-check">胃酸逆流</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="腹瀉/軟便"><div class="btn-check">腹瀉/軟便</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="便秘/排便困難"><div class="btn-check">便秘</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="手部乾燥脫皮"><div class="btn-check">手部乾燥脫皮</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="皮膚紅癢/濕疹"><div class="btn-check">皮膚紅癢/濕疹</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="打噴嚏/鼻塞流鼻水"><div class="btn-check">鼻過敏/鼻塞</div></label>
-                    <label><input type="checkbox" class="abn-symp" value="肩頸腰背僵硬痠痛"><div class="btn-check">肩頸腰背痠痛</div></label>
-                </div>
-
-                <div class="form-label">處置方式與用藥保養 (可多選)</div>
-                <div class="btn-group" style="margin-bottom:12px;">
-                    <label><input type="checkbox" class="abn-treat" value="服用消脹氣藥/酵素"><div class="btn-check">吃消脹氣/酵素</div></label>
-                    <label><input type="checkbox" class="abn-treat" value="擦護手霜/乳液(Yuskin)"><div class="btn-check">擦護手霜/Yuskin</div></label>
-                    <label><input type="checkbox" class="abn-treat" value="擦外用藥膏"><div class="btn-check">擦外用藥膏</div></label>
-                    <label><input type="checkbox" class="abn-treat" value="吃抗組織胺/感冒藥"><div class="btn-check">吃抗組織胺/常備藥</div></label>
-                    <label><input type="checkbox" class="abn-treat" value="診所/醫院看診"><div class="btn-check">診所/醫院就醫</div></label>
-                </div>
-
-                <textarea id="abn-memo" placeholder="詳細狀況描述、可疑誘發食物、體溫血壓或醫師囑咐..." style="margin-bottom:10px;"></textarea>
-                <button class="save-btn" onclick="appLogic.saveModuleItem('abnormal')">💾 儲存身體異常紀錄</button>
+                <button class="big-add-btn" onclick="window.startNewSleepRecord(false)">➕ 立即新增今日睡眠紀錄</button>
             </div>
-            <div class="section"><div class="section-title">📖 身體異常歷史清單</div><div id="abnormal-list"></div></div>
+
+            <!-- 2. 睡眠新增/編輯表單 -->
+            <div id="sleep-sub-record" style="display:none;">
+                <h2 id="sleep-form-title">➕ 新增睡眠紀錄</h2>
+                <input type="hidden" id="sleep-edit-id" value="">
+                <div class="section">
+                    <div class="form-row">
+                        <div><span class="form-label">紀錄日期(起床日)</span><input type="date" id="slp-date" onclick="try{this.showPicker();}catch(e){}"></div>
+                        <div><span class="form-label">總睡眠時數(小時)</span><input type="number" step="0.5" id="slp-hours" value="8"></div>
+                    </div>
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div><span class="form-label">昨晚入睡時間</span><input type="time" id="slp-bed" value="23:00"></div>
+                        <div><span class="form-label">今早起床時間</span><input type="time" id="slp-wake" value="07:00"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">起床精神與睡眠品質評分</div>
+                    <div class="btn-group">
+                        <label><input type="radio" name="slp-score" value="1"><div class="btn-check">1分 極差</div></label>
+                        <label><input type="radio" name="slp-score" value="2"><div class="btn-check">2分 疲累</div></label>
+                        <label><input type="radio" name="slp-score" value="3" checked><div class="btn-check">3分 普通</div></label>
+                        <label><input type="radio" name="slp-score" value="4"><div class="btn-check">4分 飽滿</div></label>
+                        <label><input type="radio" name="slp-score" value="5"><div class="btn-check">5分 極佳</div></label>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">睡眠干擾與輔助標籤 (可多選)</div>
+                    <div class="btn-group" id="dynamic-sleep-tags"></div>
+                    <input type="text" id="custom-sleep-tag" placeholder="輸入新睡眠標籤 (存檔後自動記憶)" style="margin-top:10px;">
+                </div>
+
+                <div class="section">
+                    <div class="section-title">睡眠備註</div>
+                    <textarea id="slp-memo" placeholder="夢境或其他作息細節..."></textarea>
+                </div>
+                <button class="save-btn" id="save-anchor-sleep" onclick="appLogic.saveSleepRecord()">💾 儲存睡眠紀錄</button>
+            </div>
+
+            <!-- 3. 睡眠歷史紀錄 -->
+            <div id="sleep-sub-history" style="display:none;">
+                <h2>📖 睡眠歷史紀錄</h2>
+                <div class="section" style="padding:12px;">
+                    <div class="filter-pills" id="sleep-score-pills">
+                        <div class="filter-pill active" onclick="window.setSleepFilter('all', this)">全部品質</div>
+                        <div class="filter-pill" onclick="window.setSleepFilter('5', this)">5分</div>
+                        <div class="filter-pill" onclick="window.setSleepFilter('4', this)">4分</div>
+                        <div class="filter-pill" onclick="window.setSleepFilter('3', this)">3分</div>
+                        <div class="filter-pill" onclick="window.setSleepFilter('2', this)">2分</div>
+                        <div class="filter-pill" onclick="window.setSleepFilter('1', this)">1分</div>
+                    </div>
+                    <input type="text" id="sleep-filter-keyword" placeholder="🔍 搜尋睡眠標籤或備註..." oninput="window.renderSleepHistory()">
+                </div>
+                <div id="sleep-list"></div>
+            </div>
+
+            <!-- 4. 睡眠圖表分析 -->
+            <div id="sleep-sub-charts" style="display:none;">
+                <h2>📊 睡眠趨勢與統計分析</h2>
+                <div class="section">
+                    <div class="section-title">📈 近期睡眠時數與品質雙軸曲線</div>
+                    <div class="chart-box"><canvas id="chartSleepModule"></canvas></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">🏷️ 常見睡眠干擾與輔助排行榜</div>
+                    <div id="sleep-tag-bars"></div>
+                </div>
+            </div>
+
+            <!-- 5. 睡眠設定頁 -->
+            <div id="sleep-sub-settings" style="display:none;">
+                <h2>⚙️ 睡眠標籤選項管理</h2>
+                <p style="font-size:13px; color:#aaa; margin-bottom:15px;">可自由新增、點擊 ✏️ 修改名稱（歷史睡眠紀錄也會同步更新），或點擊 🗑️ 刪除選項。</p>
+                <div id="sleep-prefs-manager"></div>
+            </div>
+        </div>
+
+        <!-- ==================== 模組 4：身體異常情況紀錄 (完整四分頁 + 月曆 + 就診資訊) ==================== -->
+        <div id="mod-abnormal" class="module-view">
+            <!-- 1. 身體異常首頁 -->
+            <div id="abnormal-sub-dash">
+                <div class="section">
+                    <div class="calendar-header">
+                        <button class="action-btn" onclick="window.changeAbnormalMonth(-1)">◀ 上月</button>
+                        <span id="abnormal-month-year">...</span>
+                        <button class="action-btn" onclick="window.changeAbnormalMonth(1)">下月 ▶</button>
+                    </div>
+                    <div class="calendar-grid" id="abnormal-grid"></div>
+                    <div style="margin-top:12px; font-size:12px; color:#aaa; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:3px;"><span class="cal-dot pain-1"></span>1分 輕微</div>
+                        <div style="display:flex; align-items:center; gap:3px;"><span class="cal-dot pain-2"></span>2分 中度</div>
+                        <div style="display:flex; align-items:center; gap:3px;"><span class="cal-dot pain-4"></span>3分 嚴重</div>
+                        <div style="display:flex; align-items:center; gap:3px;"><span>🏥</span>有看診</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <span id="abnormal-selected-date-title">📅 當日異常紀錄預覽</span>
+                        <button class="action-btn" id="btn-add-abnormal-date" style="background:var(--primary-color); border:none; font-weight:bold;" onclick="window.startNewAbnormalRecord(true)">➕ 補登此日</button>
+                    </div>
+                    <div id="abnormal-selected-date-list"></div>
+                </div>
+
+                <button class="big-add-btn" onclick="window.startNewAbnormalRecord(false)">➕ 立即新增身體異常紀錄</button>
+            </div>
+
+            <!-- 2. 身體異常新增/編輯表單 (含是否就診、科別、就診日期) -->
+            <div id="abnormal-sub-record" style="display:none;">
+                <h2 id="abnormal-form-title">➕ 新增身體異常紀錄</h2>
+                <input type="hidden" id="abnormal-edit-id" value="">
+
+                <div class="section">
+                    <div class="section-title">發作/紀錄時間與嚴重程度</div>
+                    <div style="margin-bottom:12px;">
+                        <span class="form-label">時間 (點擊修改)</span>
+                        <input type="datetime-local" id="abn-time" onclick="try{this.showPicker();}catch(e){}">
+                    </div>
+                    <span class="form-label">嚴重程度</span>
+                    <div class="btn-group">
+                        <label><input type="radio" name="abn-level" value="1分: 輕微有感"><div class="btn-check">1分: 輕微有感</div></label>
+                        <label><input type="radio" name="abn-level" value="2分: 中度不適" checked><div class="btn-check">2分: 中度不適</div></label>
+                        <label><input type="radio" name="abn-level" value="3分: 嚴重困擾"><div class="btn-check">3分: 嚴重困擾</div></label>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">異常類別 (可多選)</div>
+                    <div class="btn-group" id="dynamic-abn-cats"></div>
+                    <input type="text" id="custom-abn-cat" placeholder="輸入新異常類別 (存檔後自動記憶)" style="margin-top:10px;">
+                </div>
+
+                <div class="section">
+                    <div class="section-title">具體異常症狀 (可多選)</div>
+                    <div class="btn-group" id="dynamic-abn-symps"></div>
+                    <input type="text" id="custom-abn-symp" placeholder="輸入新症狀 (存檔後自動記憶)" style="margin-top:10px;">
+                </div>
+
+                <div class="section">
+                    <div class="section-title">處置方式與用藥保養 (可多選)</div>
+                    <div class="btn-group" id="dynamic-abn-treats"></div>
+                    <input type="text" id="custom-abn-treat" placeholder="輸入新處置方式 (存檔後自動記憶)" style="margin-top:10px;">
+                </div>
+
+                <!-- 是否就診區塊 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span>🏥 是否就診看醫</span>
+                        <label style="margin:0; cursor:pointer;">
+                            <input type="checkbox" id="abn-clinic-toggle" onchange="document.getElementById('abn-clinic-fields').style.display = this.checked ? 'block' : 'none';">
+                            <div class="btn-check" style="margin:0; padding:6px 16px; font-size:13px;">🏥 有就醫看診</div>
+                        </label>
+                    </div>
+                    <div id="abn-clinic-fields" style="display:none; margin-top:10px;">
+                        <div class="form-row" style="margin-bottom:0;">
+                            <div>
+                                <span class="form-label">就診日期</span>
+                                <input type="date" id="abn-clinic-date" onclick="try{this.showPicker();}catch(e){}">
+                            </div>
+                            <div>
+                                <span class="form-label">就診院所與科別</span>
+                                <input type="text" id="abn-clinic-dept" placeholder="如: 腸胃科 / 皮膚科 / 牙科">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">詳細備註與醫囑</div>
+                    <textarea id="abn-memo" placeholder="詳細狀況描述、可疑誘發食物、體溫血壓或醫師囑咐..."></textarea>
+                </div>
+                <button class="save-btn" id="save-anchor-abnormal" onclick="appLogic.saveAbnormalRecord()">💾 儲存身體異常紀錄</button>
+            </div>
+
+            <!-- 3. 身體異常歷史紀錄 -->
+            <div id="abnormal-sub-history" style="display:none;">
+                <h2>📖 身體異常歷史紀錄</h2>
+                <div class="section" style="padding:12px;">
+                    <div class="filter-pills" id="abnormal-level-pills">
+                        <div class="filter-pill active" onclick="window.setAbnormalFilter('all', this)">全部</div>
+                        <div class="filter-pill" onclick="window.setAbnormalFilter('clinic', this)">🏥 有就診</div>
+                        <div class="filter-pill" onclick="window.setAbnormalFilter('1', this)">1分 輕微</div>
+                        <div class="filter-pill" onclick="window.setAbnormalFilter('2', this)">2分 中度</div>
+                        <div class="filter-pill" onclick="window.setAbnormalFilter('3', this)">3分 嚴重</div>
+                    </div>
+                    <input type="text" id="abnormal-filter-keyword" placeholder="🔍 搜尋類別 / 症狀 / 科別 / 備註..." oninput="window.renderAbnormalHistory()">
+                </div>
+                <div id="abnormal-list"></div>
+            </div>
+
+            <!-- 4. 身體異常圖表分析 -->
+            <div id="abnormal-sub-charts" style="display:none;">
+                <h2>📊 身體異常統計分析</h2>
+                <div class="section">
+                    <div class="section-title">📊 各異常類別發生次數統計</div>
+                    <div class="chart-box"><canvas id="chartAbnormalCats"></canvas></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">🔥 常見異常症狀排行榜 (Top 8)</div>
+                    <div id="abnormal-symp-bars"></div>
+                </div>
+            </div>
+
+            <!-- 5. 身體異常設定頁 -->
+            <div id="abnormal-sub-settings" style="display:none;">
+                <h2>⚙️ 身體異常選項標籤管理</h2>
+                <p style="font-size:13px; color:#aaa; margin-bottom:15px;">可自由新增、點擊 ✏️ 修改名稱（歷史紀錄也會同步更新），或點擊 🗑️ 刪除選項按鈕。</p>
+                <div id="abnormal-prefs-manager"></div>
+            </div>
         </div>
 
         <!-- ==================== 模組 5：飲水與咖啡因追蹤 (B1) ==================== -->
